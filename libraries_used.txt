@@ -1,2 +1,2 @@
 JTransforms - available (tri-licensed) under the MPL/LGPL/GPL
-GraphView - available under the LGPL
+AChartEngine - available under Apache license
