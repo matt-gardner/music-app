@@ -16,6 +16,10 @@ public class Microphone extends Thread {
     private double currentFrequency;
     private double[] currentMags;
 
+    private double[] bufferMultipliers = new double[] {2, 4};
+    private int[] minMagnitudes = new int[] {7500, 10000};
+    private int bufferMultiplierIndex;
+
     private int sampleRate;
     private int bufferSize;
     private byte[] buffer;
@@ -32,6 +36,7 @@ public class Microphone extends Thread {
         fft = new DoubleFFT_1D(bufferSize);
         currentFrequency = 0.0;
         currentMags = new double[bufferSize/2];
+        bufferMultiplierIndex = 0;
     }
 
     public double getCurrentFrequency() {
@@ -68,7 +73,7 @@ public class Microphone extends Thread {
         }
         doFFT(samples);
         // If the magnitude is lower than 10,000, ignore it.
-        double max_magnitude = 10000;
+        double max_magnitude = minMagnitudes[bufferMultiplierIndex];
         double max_freq = -1;
         // I would have thought I should only divide by two, but for some reason it looks like I
         // need to divide by 4.
@@ -109,7 +114,7 @@ public class Microphone extends Thread {
                         Log.d(TAG, "Attempting rate " + rate + "Hz, bits: " + encoding +
                                 ", channel: " + channel);
                         bufferSize = AudioRecord.getMinBufferSize(rate, channel, encoding);
-                        bufferSize *= 4;
+                        bufferSize *= bufferMultipliers[bufferMultiplierIndex];
                         if (bufferSize != AudioRecord.ERROR_BAD_VALUE) {
                             // check if we can instantiate and have a success
                             AudioRecord recorder = new AudioRecord(
