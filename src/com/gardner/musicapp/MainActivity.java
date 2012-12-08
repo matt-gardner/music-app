@@ -24,7 +24,9 @@ public class MainActivity extends Activity {
 
     public static final String TAG = "musicapp.Main";
 
-    private TextView textView;
+    private TextView freqText;
+    private TextView noteText;
+    private TextView diffText;
     private Microphone microphone;
     private Handler handler;
     private Runnable callback;
@@ -49,9 +51,18 @@ public class MainActivity extends Activity {
         callback = new FrequencyUpdater();
         microphone = new Microphone(handler, callback);
 
-        textView = (TextView) findViewById(R.id.freq_text);
-        textView.setTextSize(40);
-        textView.setText("No audio");
+        initializeNoteFrequencies(440);
+
+        freqText = (TextView) findViewById(R.id.freq_text);
+        freqText.setTextSize(40);
+        freqText.setText("No audio");
+        noteText = (TextView) findViewById(R.id.note_text);
+        noteText.setTextSize(40);
+        noteText.setText("No audio");
+        diffText = (TextView) findViewById(R.id.diff_text);
+        diffText.setTextSize(40);
+        diffText.setText("No audio");
+
 
         micOn = getResources().getString(R.string.mic_on);
         micOff = getResources().getString(R.string.mic_off);
@@ -70,7 +81,7 @@ public class MainActivity extends Activity {
 
         renderer = new XYMultipleSeriesRenderer();
         renderer.setYAxisMin(0.0);
-        renderer.setYAxisMax(10000.0);
+        renderer.setYAxisMax(15000.0);
         seriesRenderer = new XYSeriesRenderer();
         renderer.addSeriesRenderer(seriesRenderer);
         freqData = new XYSeries("Frequency Magnitudes");
@@ -115,7 +126,17 @@ public class MainActivity extends Activity {
     }
 
     private void updateMaxFrequency() {
-        textView.setText(Double.toString(microphone.getCurrentFrequency()));
+        double freq = microphone.getCurrentFrequency();
+        if (freq == -1) return;
+        int note = findClosestNote(freq);
+        freqText.setText(Double.toString(freq));
+        if (note == -1) {
+            noteText.setText("Out of range");
+            diffText.setText("Out of range");
+        } else {
+            noteText.setText(noteNames[note]);
+            diffText.setText(Double.toString(freq - noteFrequencies[note]));
+        }
     }
 
     private void updateFreqGraph() {
@@ -136,4 +157,68 @@ public class MainActivity extends Activity {
         }
 
     }
+
+    private int findClosestNote(double frequency) {
+        // Some bound checking first
+        if (frequency > noteFrequencies[noteFrequencies.length - 1] ||
+                frequency < noteFrequencies[0]) {
+            return -1;
+        }
+        int min = 0;
+        int max = noteFrequencies.length;
+        int i = (max + min) / 2;
+        while (true) {
+            if (frequency > noteFrequencies[i]) {
+                if (frequency - noteFrequencies[i] < noteFrequencies[i+1] - frequency) {
+                    return i;
+                } else {
+                    min = i;
+                    i = (max + min) / 2;
+                }
+            } else if (frequency < noteFrequencies[i]) {
+                if (noteFrequencies[i] - frequency < frequency - noteFrequencies[i-1]) {
+                    return i;
+                } else {
+                    max = i;
+                    i = (max + min) / 2;
+                }
+            } else {
+                return i;
+            }
+        }
+    }
+
+    private void initializeNoteFrequencies(int basePitch) {
+        // Start A0 - really unlikely I'll need lower than that
+        int octave = 0;
+        // A7 is about as high as you can handle when sampling at 8000Hz
+        int maxOctave = 8;
+        noteFrequencies = new double[maxOctave * oneOctaveNames.length - 9];
+        noteNames = new String[maxOctave * oneOctaveNames.length - 9];
+        double multiplier = 1.0594630943592953;
+        double currentPitch = basePitch;
+        // Take the base pitch (A4), and divide by 16 to get A0
+        currentPitch /= 16;
+        int currentNote = 9;
+        int i = 0;
+        while (octave < 8) {
+            noteFrequencies[i] = currentPitch;
+            noteNames[i] = oneOctaveNames[currentNote] + octave;
+            Log.d(TAG, noteNames[i] + " is at pitch " + noteFrequencies[i]);
+            currentPitch *= multiplier;
+            i++;
+            currentNote++;
+            if (currentNote == oneOctaveNames.length) {
+                octave++;
+                currentNote = 0;
+            }
+        }
+    }
+
+    private double[] noteFrequencies;
+    private String[] noteNames;
+
+    private String[] oneOctaveNames = new String[] {
+        "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B",
+    };
 }

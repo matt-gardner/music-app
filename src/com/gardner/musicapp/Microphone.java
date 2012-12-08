@@ -67,8 +67,9 @@ public class Microphone extends Thread {
             samples[2*i] = bytes[i];
         }
         doFFT(samples);
-        double max_magnitude = Double.NEGATIVE_INFINITY;
-        double max_freq = Double.NEGATIVE_INFINITY;
+        // If the magnitude is lower than 10,000, ignore it.
+        double max_magnitude = 10000;
+        double max_freq = -1;
         // I would have thought I should only divide by two, but for some reason it looks like I
         // need to divide by 4.
         int max_n = bytes.length / 4;
@@ -108,7 +109,7 @@ public class Microphone extends Thread {
                         Log.d(TAG, "Attempting rate " + rate + "Hz, bits: " + encoding +
                                 ", channel: " + channel);
                         bufferSize = AudioRecord.getMinBufferSize(rate, channel, encoding);
-
+                        bufferSize *= 4;
                         if (bufferSize != AudioRecord.ERROR_BAD_VALUE) {
                             // check if we can instantiate and have a success
                             AudioRecord recorder = new AudioRecord(
