@@ -2,6 +2,7 @@
 <resources>
     <string name="app_name">Music App</string>
     <string name="edit_message">Enter a message</string>
-    <string name="button_start_mic">Start Microphone</string>
+    <string name="mic_on">Start Microphone</string>
+    <string name="mic_off">Stop Microphone</string>
     <string name="title_activity_display_message">Your message!</string>
 </resources>

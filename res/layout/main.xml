@@ -1,19 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="horizontal"
+    android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     >
-    <TextView android:id="@+id/freq_text"
-        android:layout_width="0dp"
+    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        />
-    <Button
+        >
+        <TextView android:id="@+id/freq_text"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            />
+        <Button android:id="@+id/switch_mic"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/mic_on"
+            android:onClick="startMicrophone"
+            />
+    </LinearLayout>
+    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        android:id="@+id/freq_graph"
+        android:orientation="horizontal"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/button_start_mic"
-        android:onClick="startMicrophone"
-        />
+        android:layout_height="250dip"
+        >
+    </LinearLayout>
 </LinearLayout>
-
