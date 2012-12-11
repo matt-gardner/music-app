@@ -16,8 +16,8 @@ public class Microphone extends Thread {
     private double currentFrequency;
     private double[] currentMags;
 
-    private double[] bufferMultipliers = new double[] {2, 4};
-    private int[] minMagnitudes = new int[] {7500, 10000};
+    private double[] bufferMultipliers = new double[] {1, 2, 4, 8};
+    private int[] minMagnitudes = new int[] {15000, 15000, 15000, 15000};
     private int bufferMultiplierIndex;
 
     private int sampleRate;
@@ -36,7 +36,7 @@ public class Microphone extends Thread {
         fft = new DoubleFFT_1D(bufferSize);
         currentFrequency = 0.0;
         currentMags = new double[bufferSize/2];
-        bufferMultiplierIndex = 0;
+        bufferMultiplierIndex = 3;
     }
 
     public double getCurrentFrequency() {
@@ -99,7 +99,7 @@ public class Microphone extends Thread {
 
     // The variables and method below were taken almost verbatim from StackOverflow:
     // http://stackoverflow.com/questions/4843739/audiorecord-object-not-initializing
-    private int[] sampleRates = new int[] { 8000, 11025, 22050, 44100 };
+    private int[] sampleRates = new int[] { 44100, 22050, 11025, 8000 };
     private short[] encodings =
         new short[] { AudioFormat.ENCODING_PCM_8BIT, AudioFormat.ENCODING_PCM_16BIT };
     private short[] channels =

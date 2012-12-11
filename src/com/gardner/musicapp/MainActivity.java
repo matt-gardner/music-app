@@ -81,7 +81,7 @@ public class MainActivity extends Activity {
 
         renderer = new XYMultipleSeriesRenderer();
         renderer.setYAxisMin(0.0);
-        renderer.setYAxisMax(15000.0);
+        renderer.setYAxisMax(25000.0);
         seriesRenderer = new XYSeriesRenderer();
         renderer.addSeriesRenderer(seriesRenderer);
         freqData = new XYSeries("Frequency Magnitudes");
