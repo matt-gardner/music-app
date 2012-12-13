@@ -76,7 +76,7 @@ public class SoundEngine {
         }
         doFFT(samples);
         // If the magnitude is lower than 15,000, ignore it.
-        double max_magnitude = 15000;
+        double max_magnitude = 150;
         double max_freq = -1;
         // I would have thought I should only divide by two, but for some reason it looks like I
         // need to divide by 4.
