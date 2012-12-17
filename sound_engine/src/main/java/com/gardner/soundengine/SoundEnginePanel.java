@@ -79,6 +79,7 @@ class SoundEnginePanel extends JPanel {
                 true,
                 false);
         chart.getXYPlot().getRangeAxis().setRange(0.0, 5000.0);
+        chart.getXYPlot().getDomainAxis().setRange(0.0, 22000.0);
         chartPanel = new ChartPanel(chart);
         chartPanel.setPreferredSize(new Dimension(500, 300));
         bottomPanel.add(chartPanel);
