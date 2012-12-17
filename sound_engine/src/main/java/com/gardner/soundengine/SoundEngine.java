@@ -1,5 +1,6 @@
 package com.gardner.soundengine;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -69,33 +70,134 @@ public class SoundEngine {
         return currentMags;
     }
 
-    private double processSample() {
-        for (int i=0; i<buffer.length; i++) {
-            samples[2*i] = buffer[i];
+    private void processSample() {
+        for (int i=0; i<bufferSize; i++) {
+            // Half-wave rectification and log compression
+            if (buffer[i] > 0) {
+                samples[2*i] = Math.log(buffer[i]);
+            } else {
+                samples[2*i] = 0;
+            }
             samples[2*i+1] = 0;
         }
         doFFT(samples);
-        // If the magnitude is lower than 15,000, ignore it.
-        double max_magnitude = 150;
-        double max_freq = -1;
-        // I would have thought I should only divide by two, but for some reason it looks like I
-        // need to divide by 4.
-        int max_n = buffer.length / 4;
+        ArrayList<Double> peaks = new ArrayList<Double>();
+
+        double min_magnitude = 100;
+        int max_n = bufferSize / 2;
+
         currentMags = new double[max_n*2];
+        boolean in_peak = false;
+        int first_bin = -1;
+        boolean past_zero = false;
+        ArrayList<Double> peak_mags = new ArrayList<Double>();
+        ArrayList<Double> peak_freqs = new ArrayList<Double>();
+
         for (int i=0; i<max_n; i++) {
-            double freq = sampleRate * i / buffer.length;
+            double freq = sampleRate * i / bufferSize;
             double mag = Math.sqrt(samples[2*i]*samples[2*i] + samples[2*i+1]*samples[2*i+1]);
             currentMags[2*i] = freq;
             currentMags[2*i+1] = mag;
-            if (mag > max_magnitude) {
-                max_freq = freq;
-                max_magnitude = mag;
+            if (freq < noteFrequencies[0] || freq > noteFrequencies[noteFrequencies.length - 1]) {
+                continue;
+            }
+            if (mag > min_magnitude && freq != 0) {
+                if (past_zero) {
+                    if (!in_peak) {
+                        in_peak = true;
+                        first_bin = i;
+                    }
+                    peak_mags.add(mag);
+                    peak_freqs.add(freq);
+                }
+            } else {
+                past_zero = true;
+                if (in_peak) {
+                    if (peak_mags.size() > 1) {
+                        peaks.add(computePeakFrequency(peak_mags, peak_freqs, first_bin));
+                    }
+                    peak_mags.clear();
+                    peak_freqs.clear();
+                    in_peak = false;
+                    first_bin = -1;
+                }
             }
         }
-        currentFrequency = max_freq;
-        return max_freq;
+        if (peaks.size() == 0) {
+            currentFrequency = 0.0;
+        } else {
+            if (peaks.size() > 1 && peaks.get(1) / peaks.get(0) > 4) {
+                // Looks like a spurious low frequency peak
+                peaks.remove(0);
+            }
+            int max_harmonic = 15;
+            double[] harmonics = new double[max_harmonic];
+            double[] off_values = new double[max_harmonic];
+            double base = peaks.get(0);
+            for (int i=0; i<peaks.size(); i++) {
+                double peak = peaks.get(i);
+                double multiple = peak / base;
+                int mult = (int) (multiple + .5);
+                double off = Math.abs(multiple - mult);
+                if (mult >= max_harmonic) {
+                    // Greater than max allowable harmonic; moving on
+                    continue;
+                }
+                if (harmonics[mult] == 0.0) {
+                    harmonics[mult] = peak;
+                    off_values[mult] = off;
+                } else {
+                    if (off_values[mult] > off) {
+                        // This might be a better estimate; replace previous peak
+                        harmonics[mult] = peak;
+                        off_values[mult] = off;
+                    }
+                }
+            }
+            double sum_x = 0.0;
+            double sum_y = 0.0;
+            double sum_xy = 0.0;
+            double sum_x2 = 0.0;
+            int count = 0;
+            for (int i=0; i<max_harmonic; i++) {
+                if (harmonics[i] == 0.0) {
+                    continue;
+                }
+                count += 1;
+                sum_x += i;
+                sum_x2 += i*i;
+                sum_y += harmonics[i];
+                sum_xy += i*harmonics[i];
+            }
+            double calc_freq;
+            if (count == 1) {
+                calc_freq = sum_y;
+            } else {
+                calc_freq = (count * sum_xy - sum_x * sum_y) / (count * sum_x2 - sum_x * sum_x);
+            }
+            currentFrequency = calc_freq;
+        }
     }
 
+    private double computePeakFrequency(ArrayList<Double> mags, ArrayList<Double> freqs,
+            int first_bin) {
+        int max_index = -1;
+        double max_mag = -1;
+        for (int i=0; i<mags.size(); i++) {
+            if (mags.get(i) > max_mag) {
+                max_mag = mags.get(i);
+                max_index = i;
+            }
+        }
+        int i = max_index;
+        if (i == 0 || i == mags.size() - 1) {
+            return freqs.get(i);
+        }
+        double peak_bin = .5 * (mags.get(i-1) - mags.get(i+1)) /
+            (mags.get(i-1) - 2 * mags.get(i) + mags.get(i+1)) + (first_bin + i);
+        double peak_freq = sampleRate * peak_bin / bufferSize;
+        return peak_freq;
+    }
     private void doFFT(double[] samples) {
         fft.complexForward(samples);
     }

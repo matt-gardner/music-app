@@ -10,7 +10,7 @@ import javax.sound.sampled.TargetDataLine;
 
 public class LinuxMicrophone implements Microphone {
     TargetDataLine line = null;
-    private int bufferSize = 1024;
+    private int bufferSize = 1024 * 4;
     private int sampleRate = 44100;
     AudioFormat format;
 
