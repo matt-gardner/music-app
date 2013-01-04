@@ -4,4 +4,5 @@ gen/
 .project
 .settings/
 *.swp
-sound_engine/target
+sound_engine/classes
+sound_engine/soundengine.jar

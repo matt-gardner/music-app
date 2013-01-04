@@ -1,0 +1,145 @@
+Note:
+Pitch: 265
+Onset: 1.904
+End: 2.151
+
+Note:
+Pitch: 289
+Onset: 2.412
+End: 2.539
+
+Note:
+Pitch: 325
+Onset: 2.829
+End: 3.009
+
+Note:
+Pitch: 352
+Onset: 3.192
+End: 3.378
+
+Note:
+Pitch: 397
+Onset: 3.551
+End: 3.760
+
+Note:
+Pitch: 444
+Onset: 3.901
+End: 4.097
+
+Note:
+Pitch: 497
+Onset: 4.270
+End: 4.443
+
+Note:
+Pitch: 528
+Onset: 4.638
+End: 4.827
+
+Note:
+Pitch: 588
+Onset: 5.027
+End: 5.201
+
+Note:
+Pitch: 656
+Onset: 5.354
+End: 5.528
+
+Note:
+Pitch: 700
+Onset: 5.690
+End: 5.825
+
+Note:
+Pitch: 785
+Onset: 6.048
+End: 6.201
+
+Note:
+Pitch: 874
+Onset: 6.367
+End: 6.490
+
+Note:
+Pitch: 987
+Onset: 6.703
+End: 6.851
+
+Note:
+Pitch: 1038
+Onset: 7.046
+End: 7.207
+
+Note:
+Pitch: 982
+Onset: 7.370
+End: 7.531
+
+Note:
+Pitch: 876
+Onset: 7.730
+End: 7.886
+
+Note:
+Pitch: 784
+Onset: 8.079
+End: 8.240
+
+Note:
+Pitch: 699
+Onset: 8.432
+End: 8.596
+
+Note:
+Pitch: 657
+Onset: 8.805
+End: 8.965
+
+Note:
+Pitch: 586
+Onset: 9.146
+End: 9.336
+
+Note:
+Pitch: 529
+Onset: 9.497
+End: 9.668
+
+Note:
+Pitch: 497
+Onset: 9.848
+End: 10.043
+
+Note:
+Pitch: 443
+Onset: 10.237
+End: 10.431
+
+Note:
+Pitch: 396
+Onset: 10.594
+End: 10.785
+
+Note:
+Pitch: 354
+Onset: 10.968
+End: 11.177
+
+Note:
+Pitch: 323
+Onset: 11.346
+End: 11.556
+
+Note:
+Pitch: 288
+Onset: 11.816
+End: 11.991
+
+Note:
+Pitch: 262
+Onset: 12.296
+End: 12.503
+

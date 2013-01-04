@@ -20,22 +20,30 @@ class SoundEnginePanel extends JPanel {
     private JLabel noteLabel;
     private JLabel differenceLabel;
     private JButton startEngineButton;
+    private JCheckBox saveToFileBox;
+    private JButton saveToFileButton;
     private boolean engineRunning;
 
     private EngineRunner runner;
 
     private SoundEngine engine;
+    private LinuxMicrophone microphone;
 
     private XYSeries series;
     private XYSeriesCollection data;
     private JFreeChart chart;
     private ChartPanel chartPanel;
+    private XYSeries series2;
+    private XYSeriesCollection data2;
+    private JFreeChart chart2;
+    private ChartPanel chartPanel2;
 
 
-    public SoundEnginePanel(SoundEngine engine) {
+    public SoundEnginePanel(SoundEngine engine, LinuxMicrophone microphone) {
         this.engine = engine;
+        this.microphone = microphone;
 
-        setPreferredSize(new Dimension(500, 450));
+        setPreferredSize(new Dimension(500, 750));
 
         frequencyLabel = new JLabel("No audio");
         noteLabel = new JLabel("No audio");
@@ -61,9 +69,17 @@ class SoundEnginePanel extends JPanel {
         startEngineButton = new JButton("Start Microphone");
         startEngineButton.addActionListener(new EngineButtonListener());
         buttonPanel.add(startEngineButton);
+        saveToFileBox = new JCheckBox("Save Audio");
+        saveToFileBox.addActionListener(new SaveAudioListener());
+        buttonPanel.add(saveToFileBox);
+        saveToFileButton = new JButton("Save to File");
+        saveToFileButton.addActionListener(new SaveAudioListener());
+        saveToFileButton.setEnabled(false);
+        buttonPanel.add(saveToFileButton);
         topPanel.add(buttonPanel);
 
         bottomPanel = new JPanel();
+        bottomPanel.setLayout(new BoxLayout(bottomPanel, BoxLayout.Y_AXIS));
         add(bottomPanel);
 
         engineRunning = false;
@@ -80,14 +96,39 @@ class SoundEnginePanel extends JPanel {
                 false);
         chart.getXYPlot().getRangeAxis().setRange(0.0, 5000.0);
         chart.getXYPlot().getDomainAxis().setRange(0.0, 22000.0);
+        //chart.getXYPlot().getRangeAxis().setRange(-64, 64);
+        //chart.getXYPlot().getDomainAxis().setRange(0.0, engine.getDataSize());
         chartPanel = new ChartPanel(chart);
         chartPanel.setPreferredSize(new Dimension(500, 300));
         bottomPanel.add(chartPanel);
+
+        series2 = new XYSeries("Raw Signal");
+        data2 = new XYSeriesCollection(series2);
+        chart2 = ChartFactory.createXYLineChart(
+                "Raw Signal",
+                "Time Step",
+                "Magnitude",
+                data2,
+                PlotOrientation.VERTICAL,
+                true,
+                true,
+                false);
+        if (engine.getBytesPerFrame() == 1) {
+            chart2.getXYPlot().getRangeAxis().setRange(-80, 80);
+        } else {
+            chart2.getXYPlot().getRangeAxis().setRange(-10000, 10000);
+        }
+        chart2.getXYPlot().getDomainAxis().setRange(0.0, engine.getDataSize());
+        chartPanel2 = new ChartPanel(chart2);
+        chartPanel2.setPreferredSize(new Dimension(500, 300));
+        bottomPanel.add(chartPanel2);
     }
 
     private void update() {
         updateLabels();
         updateChart();
+        //updateChartTesting();
+        updateChart2();
     }
 
     private void updateLabels() {
@@ -108,6 +149,23 @@ class SoundEnginePanel extends JPanel {
         }
     }
 
+    private void updateChartTesting() {
+        series.clear();
+        double[] signal = engine.getTestingSignal2();
+        for (int i=0; i<signal.length; i++) {
+            series.add(i, signal[i]);
+        }
+    }
+
+    private void updateChart2() {
+        series2.clear();
+        int[] rawSignal = engine.getRawSignal();
+        //double[] rawSignal = engine.getTestingSignal();
+        for (int i=0; i<rawSignal.length; i++) {
+            series2.add(i, rawSignal[i]);
+        }
+    }
+
     private class EngineButtonListener implements ActionListener {
         public void actionPerformed(ActionEvent event) {
             if (engineRunning) {
@@ -120,6 +178,22 @@ class SoundEnginePanel extends JPanel {
                 startEngineButton.setText("Stop Microphone");
             }
             engineRunning = !engineRunning;
+        }
+    }
+
+    private class SaveAudioListener implements ActionListener {
+        public void actionPerformed(ActionEvent event) {
+            if (event.getSource() == saveToFileBox) {
+                if (saveToFileBox.isSelected()) {
+                    microphone.setSaveToFile(true);
+                    saveToFileButton.setEnabled(true);
+                } else {
+                    microphone.setSaveToFile(false);
+                    saveToFileButton.setEnabled(false);
+                }
+            } else if (event.getSource() == saveToFileButton) {
+                microphone.saveAudio();
+            }
         }
     }
 

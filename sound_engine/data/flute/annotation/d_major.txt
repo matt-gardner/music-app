@@ -1,0 +1,84 @@
+Note:
+Pitch: 587
+Onset: 1.413
+End: 1.632
+
+Note:
+Pitch: 650
+Onset: 1.633
+End: 1.797
+
+Note:
+Pitch: 734
+Onset: 1.911
+End: 1.986
+
+Note:
+Pitch: 792
+Onset: 2.123
+End: 2.220
+
+Note:
+Pitch: 885
+Onset: 2.395
+End: 2.566
+
+Note:
+Pitch: 986
+Onset: 2.567
+End: 2.708
+
+Note:
+Pitch: 1104
+Onset: 2.803
+End: 2.916
+
+Note:
+Pitch: 1163
+Onset: 3.027
+End: 3.128
+
+Note:
+Pitch: 1327
+Onset: 3.253
+End: 3.455
+
+Note:
+Pitch: 1159
+Onset: 3.459
+End: 3.645
+
+Note:
+Pitch: 1092
+Onset: 3.734
+End: 3.826
+
+Note:
+Pitch: 981
+Onset: 3.930
+End: 4.035
+
+Note:
+Pitch: 879
+Onset: 4.178
+End: 4.396
+
+Note:
+Pitch: 772
+Onset: 4.397
+End: 4.558
+
+Note:
+Pitch: 730
+Onset: 4.611
+End: 4.761
+
+Note:
+Pitch: 643
+Onset: 4.852
+End: 4.938
+
+Note:
+Pitch: 583
+Onset: 5.127
+End: 6.166

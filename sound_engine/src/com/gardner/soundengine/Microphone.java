@@ -12,6 +12,16 @@ public interface Microphone {
 
     public int getBufferSize();
 
+    public int getBitRate();
+
+    public int getBytesPerFrame();
+
+    /**
+     * Magnitude in Fourier space below which we ignore a frequency component.  Because this
+     * depends heavily on microphone settings, we put it in here.
+     */
+    public int getMinimumMagnitude();
+
     /**
      * Start the microphone running.
      */
