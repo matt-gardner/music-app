@@ -13,13 +13,14 @@
 
     <target name="compile" description="Compiles the code">
         <mkdir dir="classes"/>
-        <javac srcdir="src" destdir="classes" includeantruntime="false">
+        <javac debug="true" srcdir="src" destdir="classes" includeantruntime="false">
             <classpath refid="lib-classpath"/>
         </javac>
     </target>
 
     <target name="jar" depends="compile">
-        <jar destfile="soundengine.jar" basedir="classes">
+        <jar destfile="soundengine.jar">
+            <fileset dir="classes"/>
             <manifest>
                 <attribute name="Main-Class" value="${main-class}"/>
             </manifest>

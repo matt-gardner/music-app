@@ -35,6 +35,7 @@ public class LinuxFileMicrophone implements Microphone {
         minMagnitude = 100;
         System.out.println("Opened file " + file.getPath());
         System.out.println("Sample rate: " + sampleRate);
+        System.out.println("Bit rate: " + bitRate);
     }
 
     @Override
@@ -69,7 +70,20 @@ public class LinuxFileMicrophone implements Microphone {
     @Override
     public int sample(byte[] buffer) {
         try {
-            return stream.read(buffer, 0, bufferSize);
+            int bytes = stream.read(buffer, 0, bufferSize);
+            // These are unsigned bytes, but java is treating them as signed.  So we shift the
+            // values.  TODO: this is quite specific to some particular files I'm currently working
+            // with.  If this gets used more broadly later, this bit of code should be fixed.
+            if (bitRate == 8) {
+                for (int i=0; i<bufferSize; i++) {
+                    if (buffer[i] > 0) {
+                        buffer[i] = (byte) (buffer[i] - 128);
+                    } else {
+                        buffer[i] = (byte) (buffer[i] + 128);
+                    }
+                }
+            }
+            return bytes;
         } catch(IOException e) {
             throw new RuntimeException(e);
         }

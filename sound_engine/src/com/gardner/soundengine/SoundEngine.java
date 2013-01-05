@@ -13,6 +13,7 @@ public class SoundEngine {
 
     private double currentFrequency;
     private double[] currentMags;
+    private int num_ffts;
 
     private int sampleRate;
     private int bufferSize;
@@ -37,7 +38,8 @@ public class SoundEngine {
     // resolution of 1s / 44100 * 256 ~= 6 ms.  32nd notes at 240 beats per minute take about 31
     // milliseconds, and humans can distinguish sounds up to about 10 milliseconds.  So this
     // resolution should be plenty adequate.
-    int stftBufferSize;
+    private double[][] spectrogram;
+    int spectrogramWindowSize;
     int windowStepSize;
     int numWindows;
     private DoubleFFT_1D stft;
@@ -65,11 +67,12 @@ public class SoundEngine {
         // Default to A4 at 440Hz
         initializeNoteFrequencies(440);
         timeStep = 0;
+        num_ffts = 0;
 
-        stftBufferSize = 512;
-        windowStepSize = stftBufferSize / 2;
+        spectrogramWindowSize = 512;
+        windowStepSize = spectrogramWindowSize / 2;
         numWindows = dataSize / windowStepSize - 1;
-        stft = new DoubleFFT_1D(stftBufferSize);
+        stft = new DoubleFFT_1D(spectrogramWindowSize);
     }
 
     /**
@@ -121,8 +124,16 @@ public class SoundEngine {
         return dataSize;
     }
 
+    public int getDataNormalizer() {
+        return (int) Math.pow(2, bitRate-1);
+    }
+
     public int getBytesPerFrame() {
         return bytesPerFrame;
+    }
+
+    public int getNumFfts() {
+        return num_ffts;
     }
 
     public void start() {
@@ -137,6 +148,10 @@ public class SoundEngine {
         return data;
     }
 
+    public double[][] getSpectrogram() {
+        return spectrogram;
+    }
+
     // For outputing whatever I want to view for testing purposes
     public double[] getTestingSignal() {
         return testing;
@@ -148,38 +163,24 @@ public class SoundEngine {
     }
 
     private void processSample() {
-        analyzePitch();
-        findNoteOnsets();
-        //findNoteOnsetsWithSTFT();
+        //analyzePitch();
+        //findNoteOnsets();
+        computeSpectrogram();
     }
 
-    private void findNoteOnsetsWithSTFT() {
-        System.out.println("Finding note onsets");
-        testing = new double[numWindows];
-        double[] tmpData;
-        double[][] matrix = new double[numWindows][stftBufferSize/2];
+    private void computeSpectrogram() {
+        spectrogram = new double[numWindows][spectrogramWindowSize/2];
+        double[] tmpData = new double[spectrogramWindowSize*2];
         for (int i=0; i<numWindows; i++) {
-            // Copy the relevant bytes from data into tmpData
-            tmpData = new double[stftBufferSize*2];
-            for (int j=0; j<stftBufferSize; j++) {
-                tmpData[2*j] = data[i*windowStepSize+j];
-                tmpData[2*j+1] = 0;
-            }
+            int start = i*windowStepSize;
+            int end = start + spectrogramWindowSize;
+            copyDataForFft(data, tmpData, start, end);
             doFFT(tmpData, true);
-            double energy_est = 0.0;
-            double diff = 0.0;
-            for (int j=0; j<stftBufferSize/4; j++) {
-                double freq = sampleRate * i / stftBufferSize;
-                double mag = Math.sqrt(tmpData[2*i]*tmpData[2*i] + tmpData[2*i+1]*tmpData[2*i+1]);
-                matrix[i][j] = mag;
-                energy_est += matrix[i][j];
-                if (i > 0) {
-                    double d = matrix[i][j] - matrix[i-1][j];
-                    diff += d * d;
-                }
+            for (int j=0; j<spectrogramWindowSize/2; j++) {
+                double freq = sampleRate * j / spectrogramWindowSize;
+                double mag = Math.sqrt(tmpData[2*j]*tmpData[2*j] + tmpData[2*j+1]*tmpData[2*j+1]);
+                spectrogram[i][j] = mag;
             }
-            testing[i] = diff / (stftBufferSize / 2) / 10000;
-            System.out.println("Energy at " + i + ": " + testing[i]);
         }
     }
 
@@ -256,21 +257,26 @@ public class SoundEngine {
     private void analyzePitch() {
         // These methods mostly all work on the object's state, so we don't need to pass too many
         // variables around
-        copyDataToSamples();
+        copyDataForFft(data, samples, 0, dataSize);
         doFFT(samples);
         findFreqMagsAndPeaks();
         computeFrequencyFromPeaks();
     }
 
-    private void copyDataToSamples() {
-        for (int i=0; i<dataSize; i++) {
+    /**
+     * start and end are indices for the source array - the fft_array must be of size
+     * (end - start) * 2
+     */
+    private void copyDataForFft(int[] source_array, double[] fft_array, int start, int end) {
+        for (int i=0; i<(end-start); i++) {
             // Half-wave rectification and log compression
-            if (data[i] > 0) {
-                samples[2*i] = Math.log(data[i]);
+            if (source_array[i+start] > 0) {
+                fft_array[2*i] = Math.log(source_array[i+start]);
             } else {
-                samples[2*i] = 0;
+                fft_array[2*i] = 0;
             }
-            samples[2*i+1] = 0;
+            // Complex part of fft_array is zero
+            fft_array[2*i+1] = 0;
         }
     }
 
@@ -280,6 +286,7 @@ public class SoundEngine {
     }
 
     private void doFFT(double[] array, boolean do_stft) {
+        num_ffts++;
         if (do_stft) {
             stft.complexForward(array);
         } else {
