@@ -2,6 +2,7 @@ package com.gardner.soundengine;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -29,20 +30,20 @@ public class SoundEngine {
     private double[] prevAverages;
     private double[] samples;
     private DoubleFFT_1D fft;
+    private List<Integer> fullSignal;
 
     private double[] testing;
     private double[] testing2;
     private ArrayList<Double> peaks;
 
-    // With a sample rate of 44100, if we do windows in increments of 256 steps, we get a
-    // resolution of 1s / 44100 * 256 ~= 6 ms.  32nd notes at 240 beats per minute take about 31
-    // milliseconds, and humans can distinguish sounds up to about 10 milliseconds.  So this
-    // resolution should be plenty adequate.
-    private double[][] spectrogram;
+    private List<List<Double>> spectrogram;
     int spectrogramWindowSize;
     int windowStepSize;
     int numWindows;
     private DoubleFFT_1D stft;
+    private List<List<Integer>> noteBoundaries;
+    private boolean withinNote;
+
 
     private int timeStep;
 
@@ -61,6 +62,7 @@ public class SoundEngine {
         averages = new double[dataSize];
         prevAverages = new double[dataSize];
         samples = new double[dataSize*2];
+        fullSignal = new ArrayList<Integer>();
         fft = new DoubleFFT_1D(dataSize);
         currentFrequency = 0.0;
         currentMags = new double[dataSize/2];
@@ -69,10 +71,17 @@ public class SoundEngine {
         timeStep = 0;
         num_ffts = 0;
 
+        // With a sample rate of 44100, if we do windows in increments of 256 steps, we get a
+        // resolution of 1s / 44100 * 256 ~= 6 ms.  32nd notes at 240 beats per minute take about
+        // 31 milliseconds, and humans can distinguish sounds up to about 10 milliseconds.  So this
+        // resolution should be plenty adequate.
         spectrogramWindowSize = 512;
         windowStepSize = spectrogramWindowSize / 2;
         numWindows = dataSize / windowStepSize - 1;
         stft = new DoubleFFT_1D(spectrogramWindowSize);
+        noteBoundaries = new ArrayList<List<Integer>>();
+        withinNote = false;
+        spectrogram = new ArrayList<List<Double>>();
     }
 
     /**
@@ -88,8 +97,8 @@ public class SoundEngine {
             timeStep += 1;
             processSample();
             double seconds = timeStep * 1.0 / sampleRate * dataSize;
-            System.out.println("Frequency at " + seconds + ": "
-                    + currentFrequency);
+            //System.out.println("Frequency at " + seconds + ": "
+                    //+ currentFrequency);
             return true;
         }
         return false;
@@ -99,6 +108,7 @@ public class SoundEngine {
         if (bitRate == 8) {
             for (int i=0; i<bufferSize; i++) {
                 data[i] = buffer[i];
+                fullSignal.add(data[i]);
             }
         } else {
             ByteBuffer b = ByteBuffer.wrap(buffer);
@@ -108,6 +118,7 @@ public class SoundEngine {
                 } else {
                     throw new RuntimeException("Unsupported bit rate: " + bitRate);
                 }
+                fullSignal.add(data[i]);
             }
         }
     }
@@ -148,7 +159,7 @@ public class SoundEngine {
         return data;
     }
 
-    public double[][] getSpectrogram() {
+    public List<List<Double>> getSpectrogram() {
         return spectrogram;
     }
 
@@ -166,79 +177,72 @@ public class SoundEngine {
         //analyzePitch();
         //findNoteOnsets();
         computeSpectrogram();
+        findNoteOnsetsFromSpectrogram();
     }
 
     private void computeSpectrogram() {
-        spectrogram = new double[numWindows][spectrogramWindowSize/2];
         double[] tmpData = new double[spectrogramWindowSize*2];
         for (int i=0; i<numWindows; i++) {
+            List<Double> column = new ArrayList<Double>();
             int start = i*windowStepSize;
             int end = start + spectrogramWindowSize;
             copyDataForFft(data, tmpData, start, end);
             doFFT(tmpData, true);
             for (int j=0; j<spectrogramWindowSize/2; j++) {
-                double freq = sampleRate * j / spectrogramWindowSize;
+                double freq = sampleRate * j / (spectrogramWindowSize / 2);
                 double mag = Math.sqrt(tmpData[2*j]*tmpData[2*j] + tmpData[2*j+1]*tmpData[2*j+1]);
-                spectrogram[i][j] = mag;
+                column.add(mag);
             }
+            spectrogram.add(column);
         }
     }
 
-    private double adjustSignal(double s) {
-        if (s == 0.0) return s;
-        return Math.log(Math.abs(s));
-    }
+    private int windowNum = 0;
 
-    private void findNoteOnsets() {
-        double[] derivs = new double[dataSize];
-        averages = new double[dataSize];
-        testing = new double[dataSize];
-        testing2 = new double[dataSize];
-        int windowSize = 200;
-        double sum = 0.0;
-        int compareTo = 1500;
-        for (int i=dataSize-windowSize; i<dataSize; i++) {
-            sum += adjustSignal(prevData[i]);
-        }
-        double prev = 0;
-        double maxDeriv = 1.5;
-        double minDeriv = -1.5;
-        double maxIndex = -1;
-        double minIndex = -1;
-        for (int i=0; i<dataSize; i++) {
-            sum += adjustSignal(data[i]);
-            int j = i - windowSize;
-            if (j >= 0) {
-                sum -= adjustSignal(data[j]);
+    private void findNoteOnsetsFromSpectrogram() {
+        // If a window corresponds to 6 milliseconds, then this means anything less than about 25
+        // milliseconds will be ignored.
+        int minNoteSize = 4;
+        int start = spectrogram.size() - numWindows;
+        for (int i=start; i<spectrogram.size(); i++) {
+            windowNum++;
+            double total_mag = 0.0;
+            for (int j=0; j<spectrogramWindowSize/2; j++) {
+                total_mag += spectrogram.get(i).get(j);
+            }
+            double seconds = windowNum * (double) windowStepSize / sampleRate;
+            System.out.println("i: " + windowNum + "; time: " + seconds + "; total_mag: "
+                    + total_mag);
+            /*
+            ArrayList<Double> peaks = findFreqMagsAndPeaks(spectrogram.get(i), 1);
+            for (double peak : peaks) {
+                System.out.println("   peak at: " + peak);
+            }
+            */
+            // TODO: make this a parameter, and find a good way to pick it
+            if (total_mag > 400) {
+                if (!withinNote) {
+                    // TODO: check for min note size here, too, to disallow very short pauses.
+                    // That needs some care, though.
+                    withinNote = true;
+                    ArrayList<Integer> note = new ArrayList<Integer>();
+                    note.add(windowNum);
+                    noteBoundaries.add(note);
+                }
             } else {
-                sum -= adjustSignal(prevData[dataSize + j]);
+                if (withinNote) {
+                    withinNote = false;
+                    List<Integer> note = noteBoundaries.get(noteBoundaries.size()-1);
+                    int noteStart = note.get(0);
+                    if (windowNum - noteStart < minNoteSize) {
+                        noteBoundaries.remove(noteBoundaries.size()-1);
+                    } else {
+                        // TODO: try to split the note by pitch, as this just finds gaps in
+                        // articulation and rests
+                        note.add(windowNum);
+                    }
+                }
             }
-            averages[i] = sum / windowSize;
-            int l = i - compareTo;
-            if (l >= 0) {
-                prev = averages[l];
-            } else {
-                prev = prevAverages[dataSize+l];
-            }
-            derivs[i] = (averages[i] - prev);
-            testing2[i] = derivs[i]*10;
-            testing[i] = averages[i];
-            if (derivs[i] > maxDeriv) {
-                maxDeriv = derivs[i];
-                maxIndex = i;
-            }
-            if (derivs[i] < minDeriv) {
-                minDeriv = derivs[i];
-                minIndex = i;
-            }
-        }
-        if (maxIndex != -1) {
-            double seconds = (timeStep * dataSize + maxIndex) * 1.0 / sampleRate;
-            System.out.println("Possible note begin at " + seconds);
-        }
-        if (minIndex != -1) {
-            double seconds = (timeStep * dataSize + minIndex) * 1.0 / sampleRate;
-            System.out.println("Possible note end at " + seconds);
         }
     }
 
@@ -254,14 +258,21 @@ public class SoundEngine {
         return currentMags;
     }
 
+    public List<List<Integer>> getNoteBoundaries() {
+        return noteBoundaries;
+    }
+
     private void analyzePitch() {
         // These methods mostly all work on the object's state, so we don't need to pass too many
         // variables around
         copyDataForFft(data, samples, 0, dataSize);
         doFFT(samples);
-        findFreqMagsAndPeaks();
-        computeFrequencyFromPeaks();
+        // TODO: I'm taking a different approach, and so this is currently broken
+        //findFreqMagsAndPeaks();
+        //computeFrequencyFromPeaks();
     }
+
+    private double[] windowWeights;
 
     /**
      * start and end are indices for the source array - the fft_array must be of size
@@ -271,12 +282,23 @@ public class SoundEngine {
         for (int i=0; i<(end-start); i++) {
             // Half-wave rectification and log compression
             if (source_array[i+start] > 0) {
-                fft_array[2*i] = Math.log(source_array[i+start]);
+                if (windowWeights == null || windowWeights.length != (end-start)) {
+                    computeWindowWeights(end-start);
+                }
+                fft_array[2*i] = windowWeights[i] * Math.log(source_array[i+start]);
             } else {
                 fft_array[2*i] = 0;
             }
             // Complex part of fft_array is zero
             fft_array[2*i+1] = 0;
+        }
+    }
+
+    private void computeWindowWeights(int n) {
+        windowWeights = new double[n];
+        for (int i=0; i<n; i++) {
+            double angle = 2 * Math.PI * i / (n - 1);
+            windowWeights[i] = .54 - .46 * Math.cos(angle);
         }
     }
 
@@ -294,40 +316,37 @@ public class SoundEngine {
         }
     }
 
-    private void findFreqMagsAndPeaks() {
-        peaks = new ArrayList<Double>();
+    private ArrayList<Double> findFreqMagsAndPeaks(double[] mag_array, int min_mag) {
+        ArrayList<Double> peaks = new ArrayList<Double>();
 
-        int max_n = dataSize / 2;
-
-        currentMags = new double[max_n*2];
         boolean in_peak = false;
         int first_bin = -1;
         boolean past_zero = false;
+
         ArrayList<Double> peak_mags = new ArrayList<Double>();
         ArrayList<Double> peak_freqs = new ArrayList<Double>();
 
-        for (int i=0; i<max_n; i++) {
-            double freq = sampleRate * i / dataSize;
-            double mag = Math.sqrt(samples[2*i]*samples[2*i] + samples[2*i+1]*samples[2*i+1]);
-            currentMags[2*i] = freq;
-            currentMags[2*i+1] = mag;
+        int num_bins = mag_array.length * 2;
+
+        for (int i=0; i<mag_array.length; i++) {
+            double freq = sampleRate * i / num_bins;
             if (freq < noteFrequencies[0] || freq > noteFrequencies[noteFrequencies.length - 1]) {
                 continue;
             }
-            if (mag > minMagnitude && freq != 0) {
+            if (mag_array[i] > min_mag && freq != 0) {
                 if (past_zero) {
                     if (!in_peak) {
                         in_peak = true;
                         first_bin = i;
                     }
-                    peak_mags.add(mag);
+                    peak_mags.add(mag_array[i]);
                     peak_freqs.add(freq);
                 }
             } else {
                 past_zero = true;
                 if (in_peak) {
                     if (peak_mags.size() > 1) {
-                        peaks.add(computePeakFrequency(peak_mags, peak_freqs, first_bin));
+                        peaks.add(computePeakFrequency(peak_mags, peak_freqs, first_bin, num_bins));
                     }
                     peak_mags.clear();
                     peak_freqs.clear();
@@ -336,10 +355,11 @@ public class SoundEngine {
                 }
             }
         }
+        return peaks;
     }
 
     private double computePeakFrequency(ArrayList<Double> mags, ArrayList<Double> freqs,
-            int first_bin) {
+            int first_bin, int num_bins) {
         int max_index = -1;
         double max_mag = -1;
         for (int i=0; i<mags.size(); i++) {
@@ -354,13 +374,13 @@ public class SoundEngine {
         }
         double peak_bin = .5 * (mags.get(i-1) - mags.get(i+1)) /
             (mags.get(i-1) - 2 * mags.get(i) + mags.get(i+1)) + (first_bin + i);
-        double peak_freq = sampleRate * peak_bin / dataSize;
+        double peak_freq = sampleRate * peak_bin / num_bins;
         return peak_freq;
     }
 
-    private void computeFrequencyFromPeaks() {
+    private double computeFrequencyFromPeaks(ArrayList<Double> peaks) {
         if (peaks.size() == 0) {
-            currentFrequency = 0.0;
+            return 0.0;
         } else {
             if (peaks.size() > 1 && peaks.get(1) / peaks.get(0) > 4) {
                 // Looks like a spurious low frequency peak
@@ -405,19 +425,19 @@ public class SoundEngine {
                 sum_y += harmonics[i];
                 sum_xy += i*harmonics[i];
             }
-            double calc_freq;
+            double freq;
             if (count == 1) {
-                calc_freq = sum_y;
+                freq = sum_y;
             } else {
-                calc_freq = (count * sum_xy - sum_x * sum_y) / (count * sum_x2 - sum_x * sum_x);
+                freq = (count * sum_xy - sum_x * sum_y) / (count * sum_x2 - sum_x * sum_x);
             }
-            currentFrequency = calc_freq;
+            return freq;
         }
     }
 
-    /////////////////////////////////////////////////////////////////////////
-    // Mapping of frequencies onto note names
-    /////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////////////////
+    // Mapping of frequencies onto note names - maybe should go into a separate class
+    /////////////////////////////////////////////////////////////////////////////////
 
     private Map<String, Double> noteFrequencyMap;
     private String[] noteNames;
@@ -515,4 +535,67 @@ public class SoundEngine {
             }
         }
     }
+
+    /////////////////////////////////////////////////////////////////////////
+    // Old stuff that I will probably delete soon
+    /////////////////////////////////////////////////////////////////////////
+
+    private double adjustSignal(double s) {
+        if (s == 0.0) return s;
+        return Math.log(Math.abs(s));
+    }
+
+    private void findNoteOnsets() {
+        double[] derivs = new double[dataSize];
+        averages = new double[dataSize];
+        testing = new double[dataSize];
+        testing2 = new double[dataSize];
+        int windowSize = 200;
+        double sum = 0.0;
+        int compareTo = 1500;
+        for (int i=dataSize-windowSize; i<dataSize; i++) {
+            sum += adjustSignal(prevData[i]);
+        }
+        double prev = 0;
+        double maxDeriv = 1.5;
+        double minDeriv = -1.5;
+        double maxIndex = -1;
+        double minIndex = -1;
+        for (int i=0; i<dataSize; i++) {
+            sum += adjustSignal(data[i]);
+            int j = i - windowSize;
+            if (j >= 0) {
+                sum -= adjustSignal(data[j]);
+            } else {
+                sum -= adjustSignal(prevData[dataSize + j]);
+            }
+            averages[i] = sum / windowSize;
+            int l = i - compareTo;
+            if (l >= 0) {
+                prev = averages[l];
+            } else {
+                prev = prevAverages[dataSize+l];
+            }
+            derivs[i] = (averages[i] - prev);
+            testing2[i] = derivs[i]*10;
+            testing[i] = averages[i];
+            if (derivs[i] > maxDeriv) {
+                maxDeriv = derivs[i];
+                maxIndex = i;
+            }
+            if (derivs[i] < minDeriv) {
+                minDeriv = derivs[i];
+                minIndex = i;
+            }
+        }
+        if (maxIndex != -1) {
+            double seconds = (timeStep * dataSize + maxIndex) * 1.0 / sampleRate;
+            System.out.println("Possible note begin at " + seconds);
+        }
+        if (minIndex != -1) {
+            double seconds = (timeStep * dataSize + minIndex) * 1.0 / sampleRate;
+            System.out.println("Possible note end at " + seconds);
+        }
+    }
+
 }

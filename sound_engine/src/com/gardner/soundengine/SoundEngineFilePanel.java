@@ -1,6 +1,7 @@
 package com.gardner.soundengine;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import java.awt.*;
 import java.awt.event.*;
@@ -19,6 +20,7 @@ class SoundEngineFilePanel extends JPanel {
 
     private JLabel soundWaveLabel;
     private JLabel spectrogramLabel;
+    private JScrollPane spectrogramScrollPane;
 
     public SoundEngineFilePanel() {
 
@@ -43,9 +45,10 @@ class SoundEngineFilePanel extends JPanel {
         add(bottomPanel);
 
         soundWaveLabel = new JLabel();
-        spectrogramLabel = new JLabel();
         bottomPanel.add(soundWaveLabel);
-        bottomPanel.add(spectrogramLabel);
+        spectrogramLabel = new JLabel();
+        spectrogramScrollPane = new JScrollPane(spectrogramLabel);
+        bottomPanel.add(spectrogramScrollPane);
     }
 
     private class FileListener implements ActionListener {
@@ -62,7 +65,6 @@ class SoundEngineFilePanel extends JPanel {
     private void runEngine(File file) {
         LinuxFileMicrophone microphone = new LinuxFileMicrophone(file);
         ArrayList<Double> data = new ArrayList<Double>();
-        ArrayList<ArrayList<Double>> spectrogram = new ArrayList<ArrayList<Double>>();
         SoundEngine engine = new SoundEngine(microphone);
         double normalizer = (double) engine.getDataNormalizer();
         engine.start();
@@ -72,18 +74,12 @@ class SoundEngineFilePanel extends JPanel {
             for (int i : engine.getRawSignal()) {
                 data.add(i / normalizer);
             }
-            for (double[] column : engine.getSpectrogram()) {
-                ArrayList<Double> c = new ArrayList<Double>();
-                for (double row : column) {
-                    c.add(row);
-                }
-                spectrogram.add(c);
-            }
         }
         long end_time = System.currentTimeMillis();
         double seconds = data.size() / (double) engine.getSampleRate();
         double proccessing_time = (end_time - start_time) / 1000.0;
         engine.stop();
+        List<List<Double>> spectrogram = engine.getSpectrogram();
         int start = 60000;
         int scaling = 10;
         showSoundWave(data, start, scaling);
@@ -99,7 +95,7 @@ class SoundEngineFilePanel extends JPanel {
                 break;
             }
         }
-        showSpectrogram(spectrogram, max_j);
+        showSpectrogram(spectrogram, engine, max_j);
         System.out.println("Audio file length: " + seconds);
         System.out.println("Time to process: " + proccessing_time);
         System.out.println("Number of FFTs performed: " + engine.getNumFfts());
@@ -132,7 +128,7 @@ class SoundEngineFilePanel extends JPanel {
         soundWaveLabel.setIcon(new ImageIcon(image));
     }
 
-    private void showSpectrogram(ArrayList<ArrayList<Double>> spectrogram, int max_j) {
+    private void showSpectrogram(List<List<Double>> spectrogram, SoundEngine engine, int max_j) {
         int width = spectrogram.size();
         int pixels_per_j = 400 / max_j;
         int height = max_j * pixels_per_j;
@@ -157,6 +153,19 @@ class SoundEngineFilePanel extends JPanel {
                 for (int k=0; k<pixels_per_j; k++) {
                     g.fillRect(i, current_j--, 1, 1);
                 }
+            }
+        }
+
+        for (List<Integer> note : engine.getNoteBoundaries()) {
+            // TODO: can I just fill line here, or fill rect for the line?
+            g.setColor(Color.GREEN);
+            for (int j=0; j<height; j++) {
+                g.fillRect(note.get(0), j, 1, 1);
+            }
+            if (note.size() == 1) continue;
+            g.setColor(Color.RED);
+            for (int j=0; j<height; j++) {
+                g.fillRect(note.get(1), j, 1, 1);
             }
         }
         spectrogramLabel.setIcon(new ImageIcon(image));
