@@ -40,10 +40,11 @@ public class SoundEngine {
     private int stftSize;
     private List<TranscribedNote> transcribedNotes;
 
-    // These three need to be class variables because notes may span buffer reads from the mic
+    // A bunch of variables for transcribing notes, which pretty much always span buffer reads.
     private boolean withinNote;
     private int startWindow;
     private int endWindow;
+    private int vectorSize;
 
     public SoundEngine(Microphone microphone) {
         this.microphone = microphone;
@@ -79,6 +80,9 @@ public class SoundEngine {
         startWindow = -1;
         endWindow = -1;
         spectrogram = new ArrayList<List<Double>>();
+        // This is the size of the magnitude vector in the spectrogram.  Because we throw out the
+        // top half of the FFT, we have spectrogramWindowSize / 2 entries in the magnitude vector
+        vectorSize = spectrogramWindowSize / 2;
     }
 
     public int getSampleRate() {
@@ -191,17 +195,15 @@ public class SoundEngine {
     }
 
     private void findNoteOnsetsFromSpectrogram() {
-        // If a window corresponds to 6 milliseconds, then this means anything less than about 25
-        // milliseconds will be ignored.
-        int minNoteSize = 4; // PARAMTODO
         double total_mag = 0.0;
         for (int j=0; j<spectrogramWindowSize/2; j++) {
             total_mag += spectrogram.get(windowNum).get(j);
         }
         double seconds = windowNum * (double) windowStepSize / sampleRate;
+        checkForNoteChange(windowNum);
         if (total_mag > 400) { // PARAMTODO
             if (!withinNote) {
-                startWindow = windowNum;
+                startNote(windowNum);
             }
             withinNote = true;
         } else {
@@ -212,7 +214,8 @@ public class SoundEngine {
                     endWindow = windowNum;
                 } else if (windowNum - endWindow > minNoteSize) {
                     if (endWindow - startWindow >= minNoteSize) {
-                        for (TranscribedNote note : splitNotes(startWindow, windowNum)) {
+                        TranscribedNote note = getNoteFromSpectrogramWindow(startWindow, endWindow);
+                        if (note != null) {
                             transcribedNotes.add(note);
                         }
                     }
@@ -223,85 +226,72 @@ public class SoundEngine {
         }
     }
 
-    /**
-     * Looks through the spectrogram, from startWindow to endWindow, and see if there's a likely
-     * place to split the notes.  We start from the beginning, and if there is a place to split, we
-     * call this recursively, moving startWindow to the place of the split.
-     */
-    private List<TranscribedNote> splitNotes(int startWindow, int endWindow) {
-        int vectorSize = spectrogram.get(0).size();
-        int averageCount = 0;
-        int compareCount = 0;
-        double[] averageVector = new double[vectorSize];
-        double[] compareVector = new double[vectorSize];
-        int window = startWindow;
-        // First we get an initial average for the starting note.
-        while (window < startWindow+5) { // PARAMTODO
-            double[] vector = getNormalizedSpectrogramVector(window);
+    private int averageCount;
+    private int compareCount;
+    private double[] averageVector;
+    private double[] compareVector;
+    // If a window corresponds to 6 milliseconds, then this means anything less than about 25
+    // milliseconds will be ignored.
+    private int minNoteSize = 4; // PARAMTODO
+    // Similarly, we use about 30 milliseconds to compare a change in sound to see if it's a new
+    // note
+    private int compareWindowSize = 5; // PARAMTODO
+    private double splitThreshold = .8; // PARAMTODO
+
+    private void startNote(int windowNum) {
+        startWindow = windowNum;
+        averageCount = 0;
+        compareCount = 0;
+        averageVector = new double[vectorSize];
+        compareVector = new double[vectorSize];
+    }
+
+    private void checkForNoteChange(int windowNum) {
+        if (!withinNote) return;
+        // We want to wait a few windows to get a good idea that the note is actually changing.
+        // currentWindow here represents the window that we are splitting on, looking at
+        // startWindow to currentWindow as the current note, and currentWindow to windowNum as the
+        // potential new note.  The outline of this method is: add currentWindow to the
+        // averageVector, subtract it from the compareVector, and add windowNum to the
+        // compareVector.  Then do a dot product between averageVector and compareVector, and if
+        // it's below some threshold, we start a new note.
+
+        int currentWindow = windowNum - compareWindowSize;
+        // We only add the currentWindow to the averageVector and subtract it from the
+        // compareVector if we've seen compareWindowSize windows already.  This means we're filling
+        // up compareVector first, even though there's nothing to compare it to at the beginning.
+        if (compareCount == compareWindowSize) {
+            double[] vector = getNormalizedSpectrogramVector(currentWindow);
             for (int i=0; i<vectorSize; i++) {
                 averageVector[i] += (vector[i] - averageVector[i]) / (averageCount + 1);
-            }
-            averageCount++;
-            window++;
-        }
-        // Then we get an initial average for the (possible) second note
-        int compareWindow = window;
-        while (compareWindow < window+5 && compareWindow < endWindow - 5) { // PARAMTODO
-            double[] vector = getNormalizedSpectrogramVector(compareWindow);
-            for (int j=0; j<vectorSize; j++) {
-                compareVector[j] += (vector[j] - compareVector[j]) / (compareCount + 1);
-            }
-            compareCount++;
-            compareWindow++;
-        }
-        double splitThreshold = .8; // PARAMTODO
-        // Now, compare the vectors, decide whether or not to split, and shift the compare point
-        while (compareWindow < endWindow - 5) { // PARAMTODO
-            /*
-            System.out.println("\nAt window: " + window);
-            System.out.println("averageVector norm: " + dotProduct(averageVector, averageVector));
-            System.out.println("compareVector norm: " + dotProduct(compareVector, compareVector));
-            System.out.println("dot product: " + dotProduct(averageVector, compareVector));
-            */
-            if (dotProduct(averageVector, compareVector) < splitThreshold) {
-                List<TranscribedNote> notes = new ArrayList<TranscribedNote>();
-                TranscribedNote note = getSingleNoteFromSpectrogramWindow(startWindow, window,
-                        averageVector);
-                if (note != null) {
-                    notes.add(note);
-                }
-                for (TranscribedNote splitNote : splitNotes(window+1, endWindow)) {
-                    notes.add(splitNote);
-                }
-                return notes;
-            }
-            // We didn't decide to split at this window, so move one window down.  That means add
-            // the vector at window to averageVector, subtract it from compareVector, and add the
-            // window at compareWindow to compareVector.
-            double[] vector = getNormalizedSpectrogramVector(window);
-            for (int j=0; j<vectorSize; j++) {
-                averageVector[j] += (vector[j] - averageVector[j]) / (averageCount + 1);
-                compareVector[j] -= (vector[j] - compareVector[j]) / (compareCount);
+                compareVector[i] -= (vector[i] - compareVector[i]) / (compareCount);
             }
             averageCount++;
             compareCount--;
-            vector = getNormalizedSpectrogramVector(compareWindow);
-            for (int j=0; j<vectorSize; j++) {
-                compareVector[j] += (vector[j] - compareVector[j]) / (compareCount + 1);
+        }
+        // We always want to add windowNum to the compareVector.
+        double[] vector = getNormalizedSpectrogramVector(windowNum);
+        for (int j=0; j<vectorSize; j++) {
+            compareVector[j] += (vector[j] - compareVector[j]) / (compareCount + 1);
+        }
+        compareCount++;
+        if (averageCount > minNoteSize) {
+            if (dotProduct(averageVector, compareVector) < splitThreshold) {
+                // We found a significant change; start a new note
+                TranscribedNote note = getNoteFromSpectrogramWindow(startWindow, currentWindow);
+                if (note != null) {
+                    transcribedNotes.add(note);
+                }
+                // To be sure to use all of the windows, we need to do some bookkeeping here,
+                // switching what was compareVector to the beginnings of a new averageVector.
+                // The next time checkForNoteChange is called, it will look at the window after
+                // windowNum, and because compareCount will be 0, things will work just fine.
+                double[] tmpVector = new double[vectorSize];
+                System.arraycopy(compareVector, 0, tmpVector, 0, vectorSize);
+                startNote(currentWindow + 1);
+                System.arraycopy(tmpVector, 0, averageVector, 0, vectorSize);
             }
-            compareCount++;
-            window++;
-            compareWindow++;
         }
-        // We didn't ever split the window, so compute the pitch and return a list with a single
-        // note
-        List<TranscribedNote> notes = new ArrayList<TranscribedNote>();
-        TranscribedNote note = getSingleNoteFromSpectrogramWindow(startWindow, window,
-                averageVector);
-        if (note != null) {
-            notes.add(note);
-        }
-        return notes;
     }
 
     private double[] getNormalizedSpectrogramVector(int windowNum) {
@@ -330,10 +320,11 @@ public class SoundEngine {
         return sum;
     }
 
-    private TranscribedNote getSingleNoteFromSpectrogramWindow(int startWindow, int endWindow,
-            double[] averageVector) {
+    private TranscribedNote getNoteFromSpectrogramWindow(int startWindow, int endWindow) {
         double max = .1;
         int max_index = 0;
+        // We start at 4 here to ignore the peak that's normally at 0 - that gets us to a frequency
+        // of something like 80Hz, which should be high enough for most instruments.
         for (int i=4; i<averageVector.length; i++) {
             double freq = i * sampleRate / spectrogramWindowSize;
             if (freq > noteFrequencies[noteFrequencies.length-1]) continue;
@@ -363,6 +354,7 @@ public class SoundEngine {
     /////////////////////////////////////////////////////////////////////////
     // Basic FFT kinds of stuff, including getting frequencies and magnitudes
     /////////////////////////////////////////////////////////////////////////
+    // TODO: make this a separate class
 
     private double[] windowWeights;
 
@@ -515,66 +507,10 @@ public class SoundEngine {
         return peak_freq;
     }
 
-    private double computeFrequencyFromPeaks(ArrayList<Double> peaks) {
-        if (peaks.size() == 0) {
-            return 0.0;
-        } else {
-            if (peaks.size() > 1 && peaks.get(1) / peaks.get(0) > 4) {
-                // Looks like a spurious low frequency peak
-                peaks.remove(0);
-            }
-            int max_harmonic = 15;
-            double[] harmonics = new double[max_harmonic];
-            double[] off_values = new double[max_harmonic];
-            double base = peaks.get(0);
-            for (int i=0; i<peaks.size(); i++) {
-                double peak = peaks.get(i);
-                double multiple = peak / base;
-                int mult = (int) (multiple + .5);
-                double off = Math.abs(multiple - mult);
-                if (mult >= max_harmonic) {
-                    // Greater than max allowable harmonic; moving on
-                    continue;
-                }
-                if (harmonics[mult] == 0.0) {
-                    harmonics[mult] = peak;
-                    off_values[mult] = off;
-                } else {
-                    if (off_values[mult] > off) {
-                        // This might be a better estimate; replace previous peak
-                        harmonics[mult] = peak;
-                        off_values[mult] = off;
-                    }
-                }
-            }
-            double sum_x = 0.0;
-            double sum_y = 0.0;
-            double sum_xy = 0.0;
-            double sum_x2 = 0.0;
-            int count = 0;
-            for (int i=0; i<max_harmonic; i++) {
-                if (harmonics[i] == 0.0) {
-                    continue;
-                }
-                count += 1;
-                sum_x += i;
-                sum_x2 += i*i;
-                sum_y += harmonics[i];
-                sum_xy += i*harmonics[i];
-            }
-            double freq;
-            if (count == 1) {
-                freq = sum_y;
-            } else {
-                freq = (count * sum_xy - sum_x * sum_y) / (count * sum_x2 - sum_x * sum_x);
-            }
-            return freq;
-        }
-    }
-
-    /////////////////////////////////////////////////////////////////////////////////
-    // Mapping of frequencies onto note names - maybe should go into a separate class
-    /////////////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////
+    // Mapping of frequencies onto note names
+    /////////////////////////////////////////
+    // TODO: make this a separate class
 
     private Map<String, Double> noteFrequencyMap;
     private String[] noteNames;
