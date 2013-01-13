@@ -1,0 +1,83 @@
+Note:
+Name: D5
+Beats: .5
+Articulation: Legato
+
+Note:
+Name: E5
+Beats: .5
+Articulation: Staccato
+
+Note:
+Name: F#5
+Beats: .5
+Articulation: Staccato
+
+Note:
+Name: G5
+Beats: .5
+Articulation: Staccato
+
+Note:
+Name: A5
+Beats: .5
+Articulation: Legato
+
+Note:
+Name: B5
+Beats: .5
+Articulation: Staccato
+
+Note:
+Name: C#6
+Beats: .5
+Articulation: Staccato
+
+Note:
+Name: D6
+Beats: .5
+Articulation: Staccato
+
+Note:
+Name: E6
+Beats: .5
+Articulation: Legato
+
+Note:
+Name: D6
+Beats: .5
+Articulation: Staccato
+
+Note:
+Name: C#6
+Beats: .5
+Articulation: Staccato
+
+Note:
+Name: B5
+Beats: .5
+Articulation: Staccato
+
+Note:
+Name: A5
+Beats: .5
+Articulation: Legato
+
+Note:
+Name: G5
+Beats: .5
+Articulation: Staccato
+
+Note:
+Name: F#5
+Beats: .5
+Articulation: Staccato
+
+Note:
+Name: E5
+Beats: .5
+Articulation: Staccato
+
+Note:
+Name: D5
+Beats: 2
