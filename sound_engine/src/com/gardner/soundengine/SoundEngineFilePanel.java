@@ -174,7 +174,7 @@ class SoundEngineFilePanel extends JPanel {
         System.out.println("Pitch: " + note.getPitch());
         System.out.println("Onset: " + note.getStartTime());
         System.out.println("End: " + note.getEndTime());
-        // TODO: can I just fill line here, or fill rect for the line?
+        // TODOLATER: can I just fill line here, or fill rect for the line?
         g.setColor(Color.GREEN);
         for (int y=0; y<height; y++) {
             g.fillRect(note.getStartWindow(), y, 1, 1);
@@ -281,7 +281,7 @@ class SoundEngineFilePanel extends JPanel {
         Rectangle r = new Rectangle();
         r.x = lastColumn;
         spectrogramLabel.scrollRectToVisible(r);
-        // TODO: override paintComponent to only paint the part that's visible, using
+        // TODOLATER: override paintComponent to only paint the part that's visible, using
         // buffer.getSubimage
         repaint();
     }

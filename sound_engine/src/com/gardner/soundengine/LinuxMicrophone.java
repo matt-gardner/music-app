@@ -20,7 +20,6 @@ public class LinuxMicrophone implements Microphone {
     private int sampleRate;
     private int bitRate;
     private int bytesPerFrame;
-    private int minMagnitude;
     private AudioFormat format;
     private ByteArrayOutputStream out;
     private boolean saveToFile = false;
@@ -45,8 +44,7 @@ public class LinuxMicrophone implements Microphone {
         sampleRate = 44100;
         bitRate = 8;
         bytesPerFrame = bitRate / 8;
-        bufferSize = 1024 * 4 * bytesPerFrame;
-        minMagnitude = 100;
+        bufferSize = 1024 * 4 * bytesPerFrame * 16;
         format = new AudioFormat(sampleRate, bitRate, 1, true, true);
     }
 
@@ -74,18 +72,8 @@ public class LinuxMicrophone implements Microphone {
     }
 
     @Override
-    public int getBitRate() {
-        return bitRate;
-    }
-
-    @Override
     public int getBytesPerFrame() {
         return bytesPerFrame;
-    }
-
-    @Override
-    public int getMinimumMagnitude() {
-        return minMagnitude;
     }
 
     @Override
@@ -100,7 +88,7 @@ public class LinuxMicrophone implements Microphone {
 
     @Override
     public int sample(byte[] buffer) {
-        int bytes = line.read(buffer, 0, bufferSize);
+        int bytes = line.read(buffer, 0, buffer.length);
         if (saveToFile && bytes != -1) {
             out.write(buffer, 0, bytes);
         }

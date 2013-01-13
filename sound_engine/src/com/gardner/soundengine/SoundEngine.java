@@ -44,7 +44,13 @@ public class SoundEngine {
         sampleRate = microphone.getSampleRate();
         bytesPerFrame = microphone.getBytesPerFrame();
 
-        bufferSize = microphone.getBufferSize();
+        // Note that this is different from the microphone buffer size, and should be considerably
+        // smaller, so that we are sure to sample frequently enough to not miss data coming in from
+        // the mic. We can do the processing we need to faster than real time, so that's not a
+        // problem, but there are occasionally bursts where we're slow, and then need to catch up.
+        // If this buffer size is too large relative to the mic's buffer size, the mic's buffer
+        // will overflow during those busy bursts and we'll lose data.
+        bufferSize = 1024;
         buffer = new byte[bufferSize];
         dataSize = bufferSize / bytesPerFrame;
         fullSignal = new ArrayList<Integer>();
@@ -132,9 +138,6 @@ public class SoundEngine {
      * audio input, then returns true if it was successful, false otherwise.
      */
     public boolean sampleMic() {
-        // TODO: what happens if I'm processing stuff and it takes longer than my buffer size?  Do
-        // I lose data, or does the microphone keep the data around?  Do I need a separate thread
-        // just to read and save the microphone data, in case I get behind?
         int bytes = microphone.sample(buffer);
         copyBufferToData();
         if (bytes == bufferSize) {

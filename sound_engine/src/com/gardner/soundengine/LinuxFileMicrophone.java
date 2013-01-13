@@ -13,7 +13,6 @@ public class LinuxFileMicrophone implements Microphone {
     private int sampleRate;
     private int bitRate;
     private int bytesPerFrame;
-    private int minMagnitude;
 
     public LinuxFileMicrophone(File file) {
         this.file = file;
@@ -32,7 +31,6 @@ public class LinuxFileMicrophone implements Microphone {
         sampleRate = (int) stream.getFormat().getSampleRate();
         bitRate = stream.getFormat().getSampleSizeInBits();;
         bytesPerFrame = bitRate / 8;
-        minMagnitude = 100;
         System.out.println("Opened file " + file.getPath());
         System.out.println("Sample rate: " + sampleRate);
         System.out.println("Bit rate: " + bitRate);
@@ -49,18 +47,8 @@ public class LinuxFileMicrophone implements Microphone {
     }
 
     @Override
-    public int getBitRate() {
-        return bitRate;
-    }
-
-    @Override
     public int getBytesPerFrame() {
         return bytesPerFrame;
-    }
-
-    @Override
-    public int getMinimumMagnitude() {
-        return minMagnitude;
     }
 
     @Override
@@ -70,10 +58,11 @@ public class LinuxFileMicrophone implements Microphone {
     @Override
     public int sample(byte[] buffer) {
         try {
-            int bytes = stream.read(buffer, 0, bufferSize);
+            int bytes = stream.read(buffer, 0, buffer.length);
             // These are unsigned bytes, but java is treating them as signed.  So we shift the
-            // values.  TODO: this is quite specific to some particular files I'm currently working
-            // with.  If this gets used more broadly later, this bit of code should be fixed.
+            // values.  TODOLATER: this is quite specific to some particular files I'm currently
+            // working with.  If this gets used more broadly later, this bit of code should be
+            // fixed.
             if (bitRate == 8) {
                 for (int i=0; i<bufferSize; i++) {
                     if (buffer[i] > 0) {

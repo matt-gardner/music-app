@@ -15,9 +15,11 @@ class Main {
         if (file) {
             panel = new SoundEngineFilePanel();
         } else {
+            System.out.println("Currently broken, sorry...");
             LinuxMicrophone mic = new LinuxMicrophone();
             SoundEngine engine = new SoundEngine(mic);
-            panel = new SoundEnginePanel(engine, mic);
+            panel = null;
+            //panel = new SoundEnginePanel(engine, mic);
         }
         JFrame frame = new JFrame("Sound Engine");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);

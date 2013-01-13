@@ -1,12 +1,5 @@
 package com.gardner.soundengine;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * Represents a music note as found in sheet music, or MusicXML.
  */
@@ -34,27 +27,5 @@ public class MusicNote {
 
     public double getBeats() {
         return beats;
-    }
-
-    public static List<MusicNote> readNotesFromFile(File file) {
-        List<MusicNote> notes = new ArrayList<MusicNote>();
-        double beats = 0.0;
-        String name = null;
-        String line;
-        try {
-            BufferedReader reader = new BufferedReader(new FileReader(file));
-            while ((line = reader.readLine()) != null) {
-                if (line.equals("")) {
-                    notes.add(new MusicNote(name, beats));
-                } else if (line.startsWith("Name")) {
-                    name = line.split(": ")[1];
-                } else if (line.startsWith("Beats")) {
-                    beats = Double.parseDouble(line.split(": ")[1]);
-                }
-            }
-        } catch(IOException e) {
-            throw new RuntimeException(e);
-        }
-        return notes;
     }
 }

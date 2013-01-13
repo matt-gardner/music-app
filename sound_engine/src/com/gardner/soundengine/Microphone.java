@@ -20,8 +20,10 @@ public interface Microphone {
     public void start();
 
     /**
-     * Attempt to sample bufferSize bytes from the microphone, putting the result into buffer, and
-     * returning the actual number of bytes read.
+     * Attempt to sample bytes from the microphone, putting the result into buffer, and returning
+     * the actual number of bytes read.  We will try to fill the entire buffer, so the length of
+     * the buffer should be smaller than the buffer size of the microphone, probably by a factor of
+     * 8 or more, just to be safe.
      */
     public int sample(byte[] buffer);
 

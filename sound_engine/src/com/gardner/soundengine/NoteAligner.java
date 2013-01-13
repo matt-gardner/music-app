@@ -36,8 +36,51 @@ public class NoteAligner {
         if (alignment == null) {
             computeAlignment();
         }
+        int m = musicNotes.size() - 1;
+        int t = transcribedNotes.size() - 1;
+        List<NotePair> pairs = new ArrayList<NotePair>();
+        while (m != 0 && t != 0) {
+            // Note that we're always adding at 0 here, because we're building the array backwards.
+            if (alignment[t][m] == NOTES_ALIGNED) {
+                pairs.add(0, new NotePair(transcribedNotes.get(t), musicNotes.get(m)));
+                m--;
+                t--;
+            } else if (alignment[t][m] == TRANSCRIBED_NOTE_ADDED) {
+                pairs.add(0, new NotePair(transcribedNotes.get(t), null));
+                t--;
+            } else if (alignment[t][m] == MUSIC_NOTE_SKIPPED) {
+                pairs.add(0, new NotePair(null, musicNotes.get(m)));
+                m--;
+            } else {
+                throw new RuntimeException("There's a bug somewhere");
+            }
+        }
+        // Once we get to one of the edges, we add skipped or added notes until we get to the top
+        // left corner.
+        while (m != 0) {
+            pairs.add(0, new NotePair(null, musicNotes.get(m)));
+            m--;
+        }
+        while (t != 0) {
+            pairs.add(0, new NotePair(transcribedNotes.get(t), null));
+            t--;
+        }
+        return new NoteAlignment(pairs);
+    }
+
+    private double noteSkipCost(int m_index) {
         // TODO
-        return null;
+        return 0.0;
+    }
+
+    private double noteAddCost(int t_index) {
+        // TODO
+        return 0.0;
+    }
+
+    private double noteAlignCost(int t_index, int m_index) {
+        // TODO
+        return 0.0;
     }
 
     private void computeAlignment() {
@@ -53,7 +96,7 @@ public class NoteAligner {
                     for (int i=0; i<m; i++) {
                         alignCost += noteSkipCost(i);
                     }
-                    alignCost += alignCost(t, m);
+                    alignCost += noteAlignCost(t, m);
                     if (m == 0) {
                         // If this is the top left corner, the only choice is to align the notes
                         costMatrix[t][m] = alignCost;
@@ -77,7 +120,7 @@ public class NoteAligner {
                     for (int i=0; i<t; i++) {
                         alignCost += noteAddCost(i);
                     }
-                    alignCost += alignCost(t, m);
+                    alignCost += noteAlignCost(t, m);
                     double addCost = noteAddCost(m) + costMatrix[t-1][m];
                     if (addCost < alignCost) {
                         costMatrix[t][m] = addCost;
@@ -90,7 +133,7 @@ public class NoteAligner {
                     // We've now handled the edge cases, so we're in the middle of the matrix and
                     // there are three possibilities.  Either the two notes align, the music note
                     // was skipped, or the transcribed note was added.
-                    double alignCost = alignCost(t, m) + costMatrix[t-1][m-1];
+                    double alignCost = noteAlignCost(t, m) + costMatrix[t-1][m-1];
                     double skipCost = noteSkipCost(m) + costMatrix[t][m-1];
                     double addCost = noteAddCost(t) + costMatrix[t-1][m];
                     if (addCost < skipCost && addCost < alignCost) {
