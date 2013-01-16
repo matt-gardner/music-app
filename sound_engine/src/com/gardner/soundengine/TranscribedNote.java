@@ -13,8 +13,8 @@ import java.util.List;
 public class TranscribedNote {
     private final int startWindow;
     private final int endWindow;
-    private final double startTime;
-    private final double endTime;
+    private final double startTime; // in seconds from beginning of piece
+    private final double endTime; // in seconds from beginning of piece
     private final double pitch;
 
     public TranscribedNote(int startWindow, int endWindow, double startTime, double endTime,
@@ -40,6 +40,10 @@ public class TranscribedNote {
 
     public double getEndTime() {
         return endTime;
+    }
+
+    public double getDuration() {
+        return endTime - startTime;
     }
 
     public double getPitch() {

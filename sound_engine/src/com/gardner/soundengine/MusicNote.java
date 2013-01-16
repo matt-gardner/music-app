@@ -5,6 +5,7 @@ package com.gardner.soundengine;
  */
 public class MusicNote {
     // Takes values like C4, B5, etc.
+    // TODO: figure out the best way to handle rests
     private final String name;
     // A value of 1 here means 1 beat (typically a quarter note), .5 means half a beat (typically
     // an eighth note), and so on.

@@ -64,7 +64,7 @@ public class LinuxFileMicrophone implements Microphone {
             // working with.  If this gets used more broadly later, this bit of code should be
             // fixed.
             if (bitRate == 8) {
-                for (int i=0; i<bufferSize; i++) {
+                for (int i=0; i<buffer.length; i++) {
                     if (buffer[i] > 0) {
                         buffer[i] = (byte) (buffer[i] - 128);
                     } else {

@@ -12,8 +12,41 @@ public class NoteAlignment {
         this.pairs = pairs;
     }
 
+    public List<NotePair> getPairs() {
+        return pairs;
+    }
+
+    /**
+     * For now, this returns a two line string, with the music notes on top and the transcribed
+     * notes on the bottom.
+     */
     public String getStringRepresentation() {
-        // TODO
-        return null;
+        StringBuilder builder = new StringBuilder();
+        for (NotePair pair : pairs) {
+            if (pair.getMusicNote() == null) {
+                builder.append("    ");
+            } else {
+                builder.append(String.format("%4s", pair.getMusicNote().getName()));
+            }
+            String m = "    ";
+            if (pair.getMusicNote() != null) {
+                m = pair.getMusicNote().getName();
+            }
+            String t = "    ";
+            if (pair.getTranscribedNote() != null) {
+                t = NoteUtil.findClosestNote(pair.getTranscribedNote().getPitch());
+            }
+            System.out.println(m + " ---- " + t);
+        }
+        builder.append("\n");
+        for (NotePair pair : pairs) {
+            if (pair.getTranscribedNote() == null) {
+                builder.append("    ");
+            } else {
+                builder.append(String.format("%4s",
+                            NoteUtil.findClosestNote(pair.getTranscribedNote().getPitch())));
+            }
+        }
+        return builder.toString();
     }
 }

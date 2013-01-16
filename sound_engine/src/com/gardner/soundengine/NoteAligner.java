@@ -1,6 +1,7 @@
 package com.gardner.soundengine;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class NoteAligner {
@@ -8,6 +9,8 @@ public class NoteAligner {
     private List<TranscribedNote> transcribedNotes;
     private int lastTranscribedNote;
     private byte[][] alignment;
+
+    private double secondsPerBeat;
 
     private byte MUSIC_NOTE_SKIPPED = 1;
     private byte TRANSCRIBED_NOTE_ADDED = 2;
@@ -17,6 +20,7 @@ public class NoteAligner {
         musicNotes = music.getNotes();
         transcribedNotes = new ArrayList<TranscribedNote>();
         lastTranscribedNote = 0;
+        secondsPerBeat = -1;
     }
 
     public void updateAlignment(List<TranscribedNote> notes) {
@@ -26,6 +30,7 @@ public class NoteAligner {
             transcribedNotes.add(notes.get(lastTranscribedNote));
         }
         computeAlignment();
+        estimateTempo();
     }
 
     /**
@@ -35,7 +40,9 @@ public class NoteAligner {
     public NoteAlignment getAlignment() {
         if (alignment == null) {
             computeAlignment();
+            estimateTempo();
         }
+        computeAlignment();
         int m = musicNotes.size() - 1;
         int t = transcribedNotes.size() - 1;
         List<NotePair> pairs = new ArrayList<NotePair>();
@@ -57,30 +64,99 @@ public class NoteAligner {
         }
         // Once we get to one of the edges, we add skipped or added notes until we get to the top
         // left corner.
-        while (m != 0) {
+        while (m >= 0) {
             pairs.add(0, new NotePair(null, musicNotes.get(m)));
             m--;
         }
-        while (t != 0) {
+        while (t >= 0) {
             pairs.add(0, new NotePair(transcribedNotes.get(t), null));
             t--;
         }
         return new NoteAlignment(pairs);
     }
 
+    public double getBeatsPerMinute() {
+        return 60.0 / secondsPerBeat;
+    }
+
+    private void estimateTempo() {
+        NoteAlignment alignment = getAlignment();
+        List<NotePair> pairs = alignment.getPairs();
+        List<Double> tempoEstimates = new ArrayList<Double>();
+        int pair_index = 0;
+        double beats = -1;
+        double startTime = -1;
+        while (pair_index < pairs.size()) {
+            NotePair pair = pairs.get(pair_index);
+            pair_index++;
+            if (pair.getMusicNote() == null) {
+                startTime = -1;
+                continue;
+            }
+            if (pair.getTranscribedNote() == null) {
+                startTime = -1;
+                continue;
+            }
+            if (startTime != -1) {
+                double endTime = pair.getTranscribedNote().getEndTime();
+                double tempoEstimate = (endTime - startTime) / beats;
+                tempoEstimates.add(tempoEstimate);
+            }
+            beats = pair.getMusicNote().getBeats();
+            startTime = pair.getTranscribedNote().getStartTime();
+        }
+        if (tempoEstimates.size() < 3) {
+            // If we haven't seen 3 good notes yet, don't try to estimate the tempo
+            return;
+        }
+        Collections.sort(tempoEstimates);
+        // Take the median tempo as our estimate
+        secondsPerBeat = tempoEstimates.get(tempoEstimates.size()/2);
+    }
+
     private double noteSkipCost(int m_index) {
-        // TODO
-        return 0.0;
+        // Guiding principle here: the shorter the note's duration, the more likely it is for a
+        // person to miss it, so the less it costs to skip.
+        return musicNotes.get(m_index).getBeats();
     }
 
     private double noteAddCost(int t_index) {
-        // TODO
-        return 0.0;
+        // Guiding principle: as above, the shorter the note's duration, the more likely it is to
+        // be accidental.  Also, because of some deficencies in my transcription code, very short
+        // notes get spuriously added, and so they should have a low cost (and some special case in
+        // the UI to just ignore them).
+        double denom = secondsPerBeat;
+        if (denom == -1) {
+            // Just use 80 beats per minute if we don't have an estimate of the tempo yet
+            denom = 60.0/80;
+        }
+        return transcribedNotes.get(t_index).getDuration() / denom;
     }
 
     private double noteAlignCost(int t_index, int m_index) {
-        // TODO
-        return 0.0;
+        // Guiding principle: length of note is more important than pitch, but not by a lot.  If
+        // the notes are off by an octave, maybe the transcription just got the octave wrong.
+        MusicNote m = musicNotes.get(m_index);
+        TranscribedNote t = transcribedNotes.get(t_index);
+        double cost = 0.0;
+        if (secondsPerBeat != -1) {
+            double musicBeats = m.getBeats();
+            double startTime = t.getStartTime();
+            double endTime;
+            if (t_index < transcribedNotes.size() - 1) {
+                endTime = transcribedNotes.get(t_index+1).getStartTime();
+            } else {
+                endTime = t.getEndTime();
+            }
+            double transcribedBeats = (endTime - startTime) / secondsPerBeat;
+            double percentOff = Math.abs(musicBeats - transcribedBeats) / musicBeats;
+            cost += 2 * percentOff;
+        }
+        double musicPitch = NoteUtil.getNoteFrequency(m.getName());
+        double transcribedPitch = t.getPitch();
+        double percentOff = Math.abs(musicPitch - transcribedPitch) / musicPitch;
+        cost += 10 * percentOff;
+        return cost;
     }
 
     private void computeAlignment() {

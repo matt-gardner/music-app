@@ -19,6 +19,8 @@ class SoundEngineFilePanel extends JPanel {
     private JButton pickFileButton;
     private JButton fromMicButton;
 
+    private JLabel topAlignmentLabel;
+    private JLabel bottomAlignmentLabel;
     private JLabel soundWaveLabel;
     private JLabel spectrogramLabel;
     private JScrollPane spectrogramScrollPane;
@@ -57,6 +59,10 @@ class SoundEngineFilePanel extends JPanel {
         bottomPanel.setLayout(new BoxLayout(bottomPanel, BoxLayout.Y_AXIS));
         add(bottomPanel);
 
+        topAlignmentLabel = new JLabel();
+        bottomPanel.add(topAlignmentLabel);
+        bottomAlignmentLabel = new JLabel();
+        bottomPanel.add(bottomAlignmentLabel);
         soundWaveLabel = new JLabel();
         bottomPanel.add(soundWaveLabel);
         spectrogramLabel = new JLabel();
@@ -103,9 +109,30 @@ class SoundEngineFilePanel extends JPanel {
         engine.stop();
         List<List<Double>> spectrogram = engine.getSpectrogram();
         showSpectrogram(spectrogram, engine);
+        showAlignment(engine, file);
         System.out.println("Audio file length: " + seconds);
         System.out.println("Time to process: " + proccessing_time);
         System.out.println("Number of FFTs performed: " + engine.getNumFfts());
+    }
+
+    private void showAlignment(SoundEngine engine, File file) {
+        String base = file.getName().substring(0, file.getName().length()-4);
+        File transcriptionFile = new File(file.getParentFile().getParent() + "/transcription/"
+                + base + ".txt");
+        if (!transcriptionFile.exists()) {
+            System.out.println("Couldn't find transcription file:");
+            System.out.println(transcriptionFile.getPath());
+            return;
+        }
+        SheetMusic music = SheetMusic.readFromFile(transcriptionFile);
+        NoteAligner aligner = new NoteAligner(music);
+        aligner.updateAlignment(engine.getTranscribedNotes());
+        NoteAlignment alignment = aligner.getAlignment();
+        String label = alignment.getStringRepresentation();
+        String[] parts = label.split("\n");
+        topAlignmentLabel.setText(parts[0]);
+        bottomAlignmentLabel.setText(parts[1]);
+        System.out.println(aligner.getBeatsPerMinute());
     }
 
     private void showSoundWave(ArrayList<Double> data, int start, int scaling) {
