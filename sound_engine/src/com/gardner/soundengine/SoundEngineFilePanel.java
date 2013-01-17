@@ -21,6 +21,7 @@ class SoundEngineFilePanel extends JPanel {
 
     private JLabel topAlignmentLabel;
     private JLabel bottomAlignmentLabel;
+    private JLabel tempoLabel;
     private JLabel soundWaveLabel;
     private JLabel spectrogramLabel;
     private JScrollPane spectrogramScrollPane;
@@ -60,9 +61,13 @@ class SoundEngineFilePanel extends JPanel {
         add(bottomPanel);
 
         topAlignmentLabel = new JLabel();
+        topAlignmentLabel.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
         bottomPanel.add(topAlignmentLabel);
         bottomAlignmentLabel = new JLabel();
+        bottomAlignmentLabel.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
         bottomPanel.add(bottomAlignmentLabel);
+        tempoLabel = new JLabel();
+        bottomPanel.add(tempoLabel);
         soundWaveLabel = new JLabel();
         bottomPanel.add(soundWaveLabel);
         spectrogramLabel = new JLabel();
@@ -125,14 +130,19 @@ class SoundEngineFilePanel extends JPanel {
             return;
         }
         SheetMusic music = SheetMusic.readFromFile(transcriptionFile);
+        List<TranscribedNote> notes = engine.getTranscribedNotes();
+        alignNotes(notes, music);
+    }
+
+    private void alignNotes(List<TranscribedNote> notes, SheetMusic music) {
         NoteAligner aligner = new NoteAligner(music);
-        aligner.updateAlignment(engine.getTranscribedNotes());
+        aligner.updateAlignment(notes);
         NoteAlignment alignment = aligner.getAlignment();
         String label = alignment.getStringRepresentation();
         String[] parts = label.split("\n");
         topAlignmentLabel.setText(parts[0]);
         bottomAlignmentLabel.setText(parts[1]);
-        System.out.println(aligner.getBeatsPerMinute());
+        tempoLabel.setText("" + aligner.getBeatsPerMinute());
     }
 
     private void showSoundWave(ArrayList<Double> data, int start, int scaling) {
@@ -224,7 +234,13 @@ class SoundEngineFilePanel extends JPanel {
             if (returnVal == JFileChooser.APPROVE_OPTION) {
                 File file = fileChooser.getSelectedFile();
                 fileLabel.setText(file.getName());
-                runEngine(file);
+                if (file.getName().endsWith(".wav")) {
+                    runEngine(file);
+                } else if (file.getName().endsWith(".txt")) {
+                    SheetMusic music = SheetMusic.readFromFile(file);
+                    startLiveEngine(music);
+                    running = true;
+                }
             }
         }
     }
@@ -232,44 +248,50 @@ class SoundEngineFilePanel extends JPanel {
     private class MicListener implements ActionListener {
         public void actionPerformed(ActionEvent event) {
             if (running) {
-                fromMicButton.setText("Live from Microphone");
+                fromMicButton.setText("Start Mic");
                 fileLabel.setText("No audio loaded");
                 runner.end();
                 runner.interrupt();
             } else {
-                fromMicButton.setText("Stop Microphone");
-                fileLabel.setText("Live audio");
-                LinuxMicrophone mic = new LinuxMicrophone();
-                liveEngine = new SoundEngine(mic);
-                // Set up some variables here for drawing the spectrogram
-                // Cut off the spectrogram plot above 4000 Hz, as it's not interesting
-                int max_freq = 4000;
-                max_y = 0;
-                int sampleRate = liveEngine.getSampleRate();
-                int windowSize = liveEngine.getSpectrogramWindowSize();
-                freq_per_y = sampleRate / (double) windowSize;
-                for (int i=0; i<windowSize; i++) {
-                    double freq = sampleRate * i / (double) windowSize;
-                    if (freq > max_freq) {
-                        max_y = i;
-                        break;
-                    }
-                }
-                width = 1500;
-                int target_height = 400;
-                pixels_per_y = target_height / max_y;
-                height = max_y * pixels_per_y;
-                freq_per_pixel = freq_per_y / pixels_per_y;
-                lastColumn = 0;
-                lastNoteIndex = 0;
-
-                spectrogramImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-                spectrogramLabel.setIcon(new ImageIcon(spectrogramImage));
-                runner = new EngineRunner();
-                runner.start();
+                startLiveEngine(null);
             }
             running = !running;
         }
+    }
+
+    private void startLiveEngine(SheetMusic music) {
+        fromMicButton.setText("Stop Mic");
+        if (music == null) {
+            fileLabel.setText("Live audio, no file loaded");
+        }
+        LinuxMicrophone mic = new LinuxMicrophone();
+        liveEngine = new SoundEngine(mic);
+        // Set up some variables here for drawing the spectrogram
+        // Cut off the spectrogram plot above 4000 Hz, as it's not interesting
+        int max_freq = 4000;
+        max_y = 0;
+        int sampleRate = liveEngine.getSampleRate();
+        int windowSize = liveEngine.getSpectrogramWindowSize();
+        freq_per_y = sampleRate / (double) windowSize;
+        for (int i=0; i<windowSize; i++) {
+            double freq = sampleRate * i / (double) windowSize;
+            if (freq > max_freq) {
+                max_y = i;
+                break;
+            }
+        }
+        width = 1500;
+        int target_height = 400;
+        pixels_per_y = target_height / max_y;
+        height = max_y * pixels_per_y;
+        freq_per_pixel = freq_per_y / pixels_per_y;
+        lastColumn = 0;
+        lastNoteIndex = 0;
+
+        spectrogramImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        spectrogramLabel.setIcon(new ImageIcon(spectrogramImage));
+        runner = new EngineRunner(music);
+        runner.start();
     }
 
     private SoundEngine liveEngine;
@@ -280,10 +302,20 @@ class SoundEngineFilePanel extends JPanel {
     private BufferedImage spectrogramImage;
 
     private class EngineRunner extends Thread {
+        private SheetMusic music;
+
+        public EngineRunner() {
+            this(null);
+        }
+
+        public EngineRunner(SheetMusic music) {
+            this.music = music;
+        }
+
         public void run() {
             liveEngine.start();
             while (liveEngine.sampleMic()) {
-                update();
+                update(music);
             }
         }
 
@@ -292,7 +324,7 @@ class SoundEngineFilePanel extends JPanel {
         }
     }
 
-    private void update() {
+    private void update(SheetMusic music) {
         Graphics2D g = (Graphics2D) spectrogramImage.getGraphics();
         List<List<Double>> spectrogram = liveEngine.getSpectrogram();
         if (spectrogram.size() >= width) {
@@ -304,6 +336,9 @@ class SoundEngineFilePanel extends JPanel {
         List<TranscribedNote> notes = liveEngine.getTranscribedNotes();
         for (; lastNoteIndex<notes.size(); lastNoteIndex++) {
             drawTranscribedNote(notes.get(lastNoteIndex), g);
+            if (music != null) {
+                alignNotes(notes, music);
+            }
         }
         Rectangle r = new Rectangle();
         r.x = lastColumn;

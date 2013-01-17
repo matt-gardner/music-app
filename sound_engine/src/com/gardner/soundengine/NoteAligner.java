@@ -9,12 +9,13 @@ public class NoteAligner {
     private List<TranscribedNote> transcribedNotes;
     private int lastTranscribedNote;
     private byte[][] alignment;
+    private double[][] costMatrix;
 
     private double secondsPerBeat;
 
     private byte MUSIC_NOTE_SKIPPED = 1;
     private byte TRANSCRIBED_NOTE_ADDED = 2;
-    private byte NOTES_ALIGNED = 2;
+    private byte NOTES_ALIGNED = 3;
 
     public NoteAligner(SheetMusic music) {
         musicNotes = music.getNotes();
@@ -43,10 +44,11 @@ public class NoteAligner {
             estimateTempo();
         }
         computeAlignment();
+        //printMatrices();
         int m = musicNotes.size() - 1;
         int t = transcribedNotes.size() - 1;
         List<NotePair> pairs = new ArrayList<NotePair>();
-        while (m != 0 && t != 0) {
+        while (m >= 0 && t >= 0) {
             // Note that we're always adding at 0 here, because we're building the array backwards.
             if (alignment[t][m] == NOTES_ALIGNED) {
                 pairs.add(0, new NotePair(transcribedNotes.get(t), musicNotes.get(m)));
@@ -98,7 +100,7 @@ public class NoteAligner {
                 continue;
             }
             if (startTime != -1) {
-                double endTime = pair.getTranscribedNote().getEndTime();
+                double endTime = pair.getTranscribedNote().getStartTime();
                 double tempoEstimate = (endTime - startTime) / beats;
                 tempoEstimates.add(tempoEstimate);
             }
@@ -114,10 +116,17 @@ public class NoteAligner {
         secondsPerBeat = tempoEstimates.get(tempoEstimates.size()/2);
     }
 
-    private double noteSkipCost(int m_index) {
+    private double noteSkipCost(int m_index, int t_index) {
         // Guiding principle here: the shorter the note's duration, the more likely it is for a
         // person to miss it, so the less it costs to skip.
-        return musicNotes.get(m_index).getBeats();
+        // Also, we need t_index because we are computing partial alignments; we want notes that
+        // are later in the piece to cost less to skip than notes that we should have already
+        // played.
+        double multiplier = 5;
+        if (m_index > t_index && t_index != 0) {
+            multiplier = 1;
+        }
+        return multiplier * musicNotes.get(m_index).getBeats();
     }
 
     private double noteAddCost(int t_index) {
@@ -130,7 +139,7 @@ public class NoteAligner {
             // Just use 80 beats per minute if we don't have an estimate of the tempo yet
             denom = 60.0/80;
         }
-        return transcribedNotes.get(t_index).getDuration() / denom;
+        return 5 * transcribedNotes.get(t_index).getDuration() / denom;
     }
 
     private double noteAlignCost(int t_index, int m_index) {
@@ -150,27 +159,29 @@ public class NoteAligner {
             }
             double transcribedBeats = (endTime - startTime) / secondsPerBeat;
             double percentOff = Math.abs(musicBeats - transcribedBeats) / musicBeats;
-            cost += 2 * percentOff;
+            cost += percentOff;
         }
         double musicPitch = NoteUtil.getNoteFrequency(m.getName());
         double transcribedPitch = t.getPitch();
         double percentOff = Math.abs(musicPitch - transcribedPitch) / musicPitch;
-        cost += 10 * percentOff;
+        cost += 4*percentOff;
+        cost += Math.abs(t_index - m_index) / 5;
         return cost;
     }
 
     private void computeAlignment() {
         alignment = new byte[transcribedNotes.size()][musicNotes.size()];
-        double[][] costMatrix = new double[transcribedNotes.size()][musicNotes.size()];
+        costMatrix = new double[transcribedNotes.size()][musicNotes.size()];
         for (int t=0; t<transcribedNotes.size(); t++) {
             for (int m=0; m<musicNotes.size(); m++) {
+                //System.out.println();
                 if (t == 0) {
                     // If we're on the first row, there are two possibilites: either we skipped all
                     // prior notes, or we played one prior note and skipped the rest.  We need to
                     // check both possibilities and keep the best one.
                     double alignCost = 0.0;
                     for (int i=0; i<m; i++) {
-                        alignCost += noteSkipCost(i);
+                        alignCost += noteSkipCost(i, t);
                     }
                     alignCost += noteAlignCost(t, m);
                     if (m == 0) {
@@ -179,7 +190,18 @@ public class NoteAligner {
                         alignment[t][m] = NOTES_ALIGNED;
                         continue;
                     }
-                    double skipCost = noteSkipCost(m) + costMatrix[t][m-1];
+                    double skipCost = noteSkipCost(m, t) + costMatrix[t][m-1];
+                    /*
+                    System.out.println("t: " + t + "; m: " + m);
+                    TranscribedNote tn = transcribedNotes.get(t);
+                    MusicNote mn = musicNotes.get(m);
+                    System.out.println("t: " + NoteUtil.findClosestNote(tn.getPitch()) + " for " +
+                            tn.getDuration());
+                    System.out.println("m: " + mn.getName() + " for " + mn.getBeats());
+                    System.out.println("skipCost: " + noteSkipCost(m, t) + " + " +
+                            costMatrix[t][m-1] + " = " + skipCost);
+                    System.out.println("alignCost: " + alignCost + "(" + noteAlignCost(t, m) + ")");
+                    */
                     if (skipCost < alignCost) {
                         costMatrix[t][m] = skipCost;
                         alignment[t][m] = MUSIC_NOTE_SKIPPED;
@@ -197,7 +219,18 @@ public class NoteAligner {
                         alignCost += noteAddCost(i);
                     }
                     alignCost += noteAlignCost(t, m);
-                    double addCost = noteAddCost(m) + costMatrix[t-1][m];
+                    double addCost = noteAddCost(t) + costMatrix[t-1][m];
+                    /*
+                    System.out.println("t: " + t + "; m: " + m);
+                    TranscribedNote tn = transcribedNotes.get(t);
+                    MusicNote mn = musicNotes.get(m);
+                    System.out.println("t: " + NoteUtil.findClosestNote(tn.getPitch()) + " for " +
+                            tn.getDuration());
+                    System.out.println("m: " + mn.getName() + " for " + mn.getBeats());
+                    System.out.println("addCost: " + noteAddCost(t) + " + " + costMatrix[t-1][m]
+                            + " = " + addCost);
+                    System.out.println("alignCost: " + alignCost + "(" + noteAlignCost(t, m) + ")");
+                    */
                     if (addCost < alignCost) {
                         costMatrix[t][m] = addCost;
                         alignment[t][m] = TRANSCRIBED_NOTE_ADDED;
@@ -210,8 +243,22 @@ public class NoteAligner {
                     // there are three possibilities.  Either the two notes align, the music note
                     // was skipped, or the transcribed note was added.
                     double alignCost = noteAlignCost(t, m) + costMatrix[t-1][m-1];
-                    double skipCost = noteSkipCost(m) + costMatrix[t][m-1];
+                    double skipCost = noteSkipCost(m, t) + costMatrix[t][m-1];
                     double addCost = noteAddCost(t) + costMatrix[t-1][m];
+                    /*
+                    System.out.println("t: " + t + "; m: " + m);
+                    TranscribedNote tn = transcribedNotes.get(t);
+                    MusicNote mn = musicNotes.get(m);
+                    System.out.println("t: " + NoteUtil.findClosestNote(tn.getPitch()) + " for " +
+                            tn.getDuration());
+                    System.out.println("m: " + mn.getName() + " for " + mn.getBeats());
+                    System.out.println("addCost: " + noteAddCost(t) + " + " + costMatrix[t-1][m]
+                            + " = " + addCost);
+                    System.out.println("skipCost: " + noteSkipCost(m, t) + " + " +
+                            costMatrix[t][m-1] + " = " + skipCost);
+                    System.out.println("alignCost: " + noteAlignCost(t, m) + " + " +
+                            costMatrix[t-1][m-1] + " = " + alignCost);
+                    */
                     if (addCost < skipCost && addCost < alignCost) {
                         costMatrix[t][m] = addCost;
                         alignment[t][m] = TRANSCRIBED_NOTE_ADDED;
@@ -224,6 +271,25 @@ public class NoteAligner {
                     }
                 }
             }
+        }
+    }
+
+    public void printMatrices() {
+        System.out.println("Cost matrix: ");
+        for (int t=0; t<transcribedNotes.size(); t++) {
+            for (int m=0; m<musicNotes.size(); m++) {
+                System.out.print(String.format("%2.1f", costMatrix[t][m]));
+                System.out.print(" ");
+            }
+            System.out.println();
+        }
+        System.out.println("Alignment matrix: ");
+        for (int t=0; t<transcribedNotes.size(); t++) {
+            for (int m=0; m<musicNotes.size(); m++) {
+                System.out.print(alignment[t][m]);
+                System.out.print(" ");
+            }
+            System.out.println();
         }
     }
 }
