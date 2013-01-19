@@ -31,6 +31,7 @@ public class LinuxMicrophone implements Microphone {
         for (Mixer.Info info: mixerInfos){
             System.out.println(info);
             Mixer m = AudioSystem.getMixer(info);
+            if (m.getTargetLineInfo().length == 0) continue;
             Line.Info lineInfo = m.getTargetLineInfo()[0];
             System.out.println(lineInfo);
             try {

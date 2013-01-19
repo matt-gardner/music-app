@@ -18,6 +18,8 @@ class SoundEngineFilePanel extends JPanel {
     private JLabel fileLabel;
     private JButton pickFileButton;
     private JButton fromMicButton;
+    private JCheckBox saveToFileBox;
+    private JButton saveToFileButton;
 
     private JLabel topAlignmentLabel;
     private JLabel bottomAlignmentLabel;
@@ -52,8 +54,16 @@ class SoundEngineFilePanel extends JPanel {
         fromMicButton = new JButton("Live from Microphone");
         fromMicButton.addActionListener(new MicListener());
         topPanel.add(fromMicButton);
+        saveToFileBox = new JCheckBox("Save Audio");
+        saveToFileBox.addActionListener(new SaveAudioListener());
+        topPanel.add(saveToFileBox);
+        saveToFileButton = new JButton("Save to File");
+        saveToFileButton.addActionListener(new SaveAudioListener());
+        saveToFileButton.setEnabled(false);
+        topPanel.add(saveToFileButton);
         fileLabel = new JLabel("No audio loaded");
         topPanel.add(fileLabel);
+        liveMicrophone = new LinuxMicrophone();
 
         bottomPanel = new JPanel();
         bottomPanel.setPreferredSize(new Dimension(1500, 650));
@@ -245,6 +255,22 @@ class SoundEngineFilePanel extends JPanel {
         }
     }
 
+    private class SaveAudioListener implements ActionListener {
+        public void actionPerformed(ActionEvent event) {
+            if (event.getSource() == saveToFileBox) {
+                if (saveToFileBox.isSelected()) {
+                    liveMicrophone.setSaveToFile(true);
+                    saveToFileButton.setEnabled(true);
+                } else {
+                    liveMicrophone.setSaveToFile(false);
+                    saveToFileButton.setEnabled(false);
+                }
+            } else if (event.getSource() == saveToFileButton) {
+                liveMicrophone.saveAudio();
+            }
+        }
+    }
+
     private class MicListener implements ActionListener {
         public void actionPerformed(ActionEvent event) {
             if (running) {
@@ -264,8 +290,7 @@ class SoundEngineFilePanel extends JPanel {
         if (music == null) {
             fileLabel.setText("Live audio, no file loaded");
         }
-        LinuxMicrophone mic = new LinuxMicrophone();
-        liveEngine = new SoundEngine(mic);
+        liveEngine = new SoundEngine(liveMicrophone);
         // Set up some variables here for drawing the spectrogram
         // Cut off the spectrogram plot above 4000 Hz, as it's not interesting
         int max_freq = 4000;
@@ -295,6 +320,7 @@ class SoundEngineFilePanel extends JPanel {
     }
 
     private SoundEngine liveEngine;
+    private LinuxMicrophone liveMicrophone;
     private EngineRunner runner;
     private boolean running = false;
     private int lastColumn;
