@@ -1,8 +1,10 @@
-package com.gardner.soundengine;
+package com.gardner.soundengine.alignment;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
+import com.gardner.soundengine.common.*;
 
 public class NoteAligner {
     private List<MusicNote> musicNotes;

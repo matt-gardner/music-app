@@ -1,4 +1,7 @@
-package com.gardner.soundengine;
+package com.gardner.soundengine.java_ui;
+
+// TODOLATER: this really should go somewhere else, outside of the library.  But while it's in
+// development, it makes sense to have it here, in a convenient spot.
 
 import java.util.ArrayList;
 import java.util.List;
@@ -9,7 +12,12 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import javax.swing.*;
 
-class SoundEngineFilePanel extends JPanel {
+import com.gardner.soundengine.alignment.*;
+import com.gardner.soundengine.common.*;
+import com.gardner.soundengine.microphone.*;
+import com.gardner.soundengine.transcription.*;
+
+public class SoundEngineFilePanel extends JPanel {
     private JFileChooser fileChooser;
     private JPanel topPanel;
     private JPanel bottomPanel;
@@ -87,7 +95,7 @@ class SoundEngineFilePanel extends JPanel {
 
     private void runEngine(File file) {
         LinuxFileMicrophone microphone = new LinuxFileMicrophone(file);
-        SoundEngine engine = new SoundEngine(microphone);
+        TranscriptionEngine engine = new TranscriptionEngine(microphone);
 
         // Set up some variables here for drawing the spectrogram
         // Cut off the spectrogram plot above 4000 Hz, as it's not interesting
@@ -130,7 +138,7 @@ class SoundEngineFilePanel extends JPanel {
         System.out.println("Number of FFTs performed: " + engine.getNumFfts());
     }
 
-    private void showAlignment(SoundEngine engine, File file) {
+    private void showAlignment(TranscriptionEngine engine, File file) {
         String base = file.getName().substring(0, file.getName().length()-4);
         File transcriptionFile = new File(file.getParentFile().getParent() + "/transcription/"
                 + base + ".txt");
@@ -182,7 +190,7 @@ class SoundEngineFilePanel extends JPanel {
         soundWaveLabel.setIcon(new ImageIcon(image));
     }
 
-    private void showSpectrogram(List<List<Double>> spectrogram, SoundEngine engine) {
+    private void showSpectrogram(List<List<Double>> spectrogram, TranscriptionEngine engine) {
         // Here we're drawing from a complete file, so we just set the width correctly
         width = spectrogram.size();
         System.out.println("Number of sound samples: " + spectrogram.size());
@@ -290,7 +298,7 @@ class SoundEngineFilePanel extends JPanel {
         if (music == null) {
             fileLabel.setText("Live audio, no file loaded");
         }
-        liveEngine = new SoundEngine(liveMicrophone);
+        liveEngine = new TranscriptionEngine(liveMicrophone);
         // Set up some variables here for drawing the spectrogram
         // Cut off the spectrogram plot above 4000 Hz, as it's not interesting
         int max_freq = 4000;
@@ -319,7 +327,7 @@ class SoundEngineFilePanel extends JPanel {
         runner.start();
     }
 
-    private SoundEngine liveEngine;
+    private TranscriptionEngine liveEngine;
     private LinuxMicrophone liveMicrophone;
     private EngineRunner runner;
     private boolean running = false;

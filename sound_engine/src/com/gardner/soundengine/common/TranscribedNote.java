@@ -1,4 +1,4 @@
-package com.gardner.soundengine;
+package com.gardner.soundengine.common;
 
 import java.io.BufferedReader;
 import java.io.File;

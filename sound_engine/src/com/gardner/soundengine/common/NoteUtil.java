@@ -1,4 +1,4 @@
-package com.gardner.soundengine;
+package com.gardner.soundengine.common;
 
 import java.util.HashMap;
 import java.util.Map;

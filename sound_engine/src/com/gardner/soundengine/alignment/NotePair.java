@@ -1,4 +1,6 @@
-package com.gardner.soundengine;
+package com.gardner.soundengine.alignment;
+
+import com.gardner.soundengine.common.*;
 
 /**
  * A pair of notes, one of which is a TranscribedNote and one of which is a MusicNote.  Used for

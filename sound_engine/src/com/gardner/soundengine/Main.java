@@ -3,6 +3,10 @@ package com.gardner.soundengine;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
+import com.gardner.soundengine.java_ui.*;
+import com.gardner.soundengine.microphone.*;
+import com.gardner.soundengine.transcription.*;
+
 class Main {
     public static void main (String[] args) throws InterruptedException {
         boolean file = false;
@@ -17,7 +21,7 @@ class Main {
         } else {
             System.out.println("Currently broken, sorry...");
             LinuxMicrophone mic = new LinuxMicrophone();
-            SoundEngine engine = new SoundEngine(mic);
+            TranscriptionEngine engine = new TranscriptionEngine(mic);
             panel = null;
             //panel = new SoundEnginePanel(engine, mic);
         }

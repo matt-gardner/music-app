@@ -1,4 +1,4 @@
-package com.gardner.soundengine;
+package com.gardner.soundengine.common;
 
 /**
  * Represents a music note as found in sheet music, or MusicXML.

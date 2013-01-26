@@ -1,10 +1,17 @@
-package com.gardner.soundengine;
+package com.gardner.soundengine.transcription;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SoundEngine {
+import com.gardner.soundengine.common.*;
+import com.gardner.soundengine.microphone.*;
+
+/**
+ * An engine that listens to an audio signal and returns a list of notes that were heard in the
+ * audio signal.
+ */
+public class TranscriptionEngine {
 
     private Microphone microphone;
     private int sampleRate;
@@ -38,7 +45,7 @@ public class SoundEngine {
     private double splitThreshold;
 
 
-    public SoundEngine(Microphone microphone) {
+    public TranscriptionEngine(Microphone microphone) {
         this.microphone = microphone;
         microphone.initialize();
         sampleRate = microphone.getSampleRate();

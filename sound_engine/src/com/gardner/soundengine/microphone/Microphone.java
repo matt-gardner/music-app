@@ -1,4 +1,4 @@
-package com.gardner.soundengine;
+package com.gardner.soundengine.microphone;
 
 public interface Microphone {
 

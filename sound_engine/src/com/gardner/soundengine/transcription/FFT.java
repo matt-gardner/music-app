@@ -1,9 +1,11 @@
-package com.gardner.soundengine;
+package com.gardner.soundengine.transcription;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import edu.emory.mathcs.jtransforms.fft.DoubleFFT_1D;
+
+import com.gardner.soundengine.common.*;
 
 public class FFT {
     private DoubleFFT_1D fft;

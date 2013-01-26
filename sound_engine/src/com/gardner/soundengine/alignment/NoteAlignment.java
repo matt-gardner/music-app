@@ -1,6 +1,8 @@
-package com.gardner.soundengine;
+package com.gardner.soundengine.alignment;
 
 import java.util.List;
+
+import com.gardner.soundengine.common.*;
 
 /**
  * Represents an alignment between a list of TranscribedNotes and a list of MusicNotes.
