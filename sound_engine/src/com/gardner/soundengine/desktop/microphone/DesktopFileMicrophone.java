@@ -1,4 +1,4 @@
-package com.gardner.soundengine.microphone;
+package com.gardner.soundengine.desktop.microphone;
 
 import java.io.File;
 import java.io.IOException;
@@ -6,7 +6,13 @@ import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.UnsupportedAudioFileException;
 
-public class LinuxFileMicrophone implements Microphone {
+import com.gardner.soundengine.microphone.*;
+
+/**
+ * A Microphone implementation for use on desktop machines (as we use javax APIs, not Android APIs)
+ * that reads from a file instead of a real microphone.
+ */
+public class DesktopFileMicrophone implements Microphone {
     private File file;
     private AudioInputStream stream;
     private int bufferSize;
@@ -14,7 +20,7 @@ public class LinuxFileMicrophone implements Microphone {
     private int bitRate;
     private int bytesPerFrame;
 
-    public LinuxFileMicrophone(File file) {
+    public DesktopFileMicrophone(File file) {
         this.file = file;
     }
 

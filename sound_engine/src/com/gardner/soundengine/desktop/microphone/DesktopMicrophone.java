@@ -1,4 +1,4 @@
-package com.gardner.soundengine.microphone;
+package com.gardner.soundengine.desktop.microphone;
 
 import java.io.ByteArrayOutputStream;
 import java.io.ByteArrayInputStream;
@@ -14,7 +14,9 @@ import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.Mixer;
 import javax.sound.sampled.TargetDataLine;
 
-public class LinuxMicrophone implements Microphone {
+import com.gardner.soundengine.microphone.*;
+
+public class DesktopMicrophone implements Microphone {
     private TargetDataLine line = null;
     private int bufferSize;
     private int sampleRate;

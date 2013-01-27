@@ -1,7 +1,8 @@
-package com.gardner.soundengine.java_ui;
+package com.gardner.soundengine.desktop.ui;
 
 // TODOLATER: this really should go somewhere else, outside of the library.  But while it's in
-// development, it makes sense to have it here, in a convenient spot.
+// development, it makes sense to have it here, in a convenient spot.  At least all of the desktop
+// implementation components are in their own set of packages.
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,7 +15,7 @@ import javax.swing.*;
 
 import com.gardner.soundengine.alignment.*;
 import com.gardner.soundengine.common.*;
-import com.gardner.soundengine.microphone.*;
+import com.gardner.soundengine.desktop.microphone.*;
 import com.gardner.soundengine.transcription.*;
 
 public class SoundEngineFilePanel extends JPanel {
@@ -71,7 +72,7 @@ public class SoundEngineFilePanel extends JPanel {
         topPanel.add(saveToFileButton);
         fileLabel = new JLabel("No audio loaded");
         topPanel.add(fileLabel);
-        liveMicrophone = new LinuxMicrophone();
+        liveMicrophone = new DesktopMicrophone();
 
         bottomPanel = new JPanel();
         bottomPanel.setPreferredSize(new Dimension(1500, 650));
@@ -94,7 +95,7 @@ public class SoundEngineFilePanel extends JPanel {
     }
 
     private void runEngine(File file) {
-        LinuxFileMicrophone microphone = new LinuxFileMicrophone(file);
+        DesktopFileMicrophone microphone = new DesktopFileMicrophone(file);
         TranscriptionEngine engine = new TranscriptionEngine(microphone);
 
         // Set up some variables here for drawing the spectrogram
@@ -186,6 +187,7 @@ public class SoundEngineFilePanel extends JPanel {
                 g.fillRect(i, j, 1, 1);
             }
         }
+        g.dispose();
 
         soundWaveLabel.setIcon(new ImageIcon(image));
     }
@@ -206,6 +208,7 @@ public class SoundEngineFilePanel extends JPanel {
         for (TranscribedNote note : engine.getTranscribedNotes()) {
             drawTranscribedNote(note, g);
         }
+        g.dispose();
         spectrogramLabel.setIcon(new ImageIcon(image));
     }
 
@@ -328,7 +331,7 @@ public class SoundEngineFilePanel extends JPanel {
     }
 
     private TranscriptionEngine liveEngine;
-    private LinuxMicrophone liveMicrophone;
+    private DesktopMicrophone liveMicrophone;
     private EngineRunner runner;
     private boolean running = false;
     private int lastColumn;
@@ -374,6 +377,7 @@ public class SoundEngineFilePanel extends JPanel {
                 alignNotes(notes, music);
             }
         }
+        g.dispose();
         Rectangle r = new Rectangle();
         r.x = lastColumn;
         spectrogramLabel.scrollRectToVisible(r);

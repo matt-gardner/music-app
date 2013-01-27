@@ -27,7 +27,7 @@ class SoundEnginePanel extends JPanel {
     private EngineRunner runner;
 
     private SoundEngine engine;
-    private LinuxMicrophone microphone;
+    private DesktopMicrophone microphone;
 
     private XYSeries series;
     private XYSeriesCollection data;
@@ -39,7 +39,7 @@ class SoundEnginePanel extends JPanel {
     private ChartPanel chartPanel2;
 
 
-    public SoundEnginePanel(SoundEngine engine, LinuxMicrophone microphone) {
+    public SoundEnginePanel(SoundEngine engine, DesktopMicrophone microphone) {
         this.engine = engine;
         this.microphone = microphone;
 

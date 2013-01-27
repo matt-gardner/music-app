@@ -5,9 +5,12 @@ package com.gardner.soundengine.staves;
  * have this as an interface (really, it's because Android uses a Bitmap object, and Java uses a
  * BufferedImage, and they are incompatible).  So we just use this interface, and implement the
  * interface with a small amount of platform-specific code.
+ *
+ * Beacuse the drawing APIs for each platform will handle drawing an image onto a canvas, all we
+ * really need here is to know the width and height, so our drawing library knows how much to scale
+ * the image (if necessary).
  */
 public interface StaticImage {
-    public void getWidth();
-    public void getHeight();
-    public void getPixel(int x, int y);
+    public int getWidth();
+    public int getHeight();
 }

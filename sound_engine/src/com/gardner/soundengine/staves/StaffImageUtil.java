@@ -6,7 +6,7 @@ package com.gardner.soundengine.staves;
  * Android or desktop Java) will have to implement this interface (and StaticImage and
  * StaffCanvas), and then the StaffDrawer will just use the interface.
  */
-public interface StaffImages {
+public interface StaffImageUtil {
     public StaticImage getTrebleClef();
     public StaticImage getBaseClef();
 
@@ -24,4 +24,5 @@ public interface StaffImages {
     public StaticImage getThirtySecondNoteStem();
 
     public StaticImage loadImageFile(String filename);
+    public StaticImage scaleImage(StaticImage image, double scaleFactor);
 }

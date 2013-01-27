@@ -46,4 +46,14 @@
         </java>
     </target>
 
+    <target name="run-music" depends="jar">
+        <java classname="${main-class}" fork="true">
+            <classpath>
+                <path refid="lib-classpath"/>
+                <path location="soundengine.jar"/>
+            </classpath>
+            <arg value="testMusicRendering"/>
+        </java>
+    </target>
+
 </project>
