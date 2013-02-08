@@ -52,7 +52,7 @@ public class DesktopStaffCanvas extends JPanel implements StaffCanvas {
                 i.getHeight());
         Graphics g = image.getGraphics();
         g.setColor(currentColor);
-        g.drawImage(i, top, left, i.getWidth(), i.getHeight(), null);
+        g.drawImage(i, left, top, i.getWidth(), i.getHeight(), null);
         g.dispose();
     }
 

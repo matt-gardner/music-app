@@ -26,6 +26,6 @@ public class MusicDrawingTestPanel extends JPanel {
 
         StaffImageUtil util = new DesktopStaffImageUtil();
         StaffDrawer drawer = new StaffDrawer();
-        drawer.drawStaff(canvas, util.getTrebleClef(), util);
+        drawer.drawTrebleClefStaff(canvas, StaffSize.LARGE, util);
     }
 }

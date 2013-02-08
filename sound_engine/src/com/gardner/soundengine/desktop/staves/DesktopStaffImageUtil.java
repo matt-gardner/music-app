@@ -15,62 +15,68 @@ import com.gardner.soundengine.staves.*;
  */
 public class DesktopStaffImageUtil implements StaffImageUtil {
     @Override
-    public StaticImage getTrebleClef() {
-        return loadImageFile("images/large/treble_clef.png");
+    public StaticImage getTrebleClef(StaffSize size) {
+        // Really, this should load separate images depending on size.  But for now we'll just
+        // scale stuff.
+        StaticImage clef = loadImageFile("images/large/treble_clef.png");
+        clef = scaleImage(clef, size.getTrebleClefHeight() / (double) clef.getHeight());
+        return clef;
     }
 
     @Override
-    public StaticImage getBaseClef() {
-        return loadImageFile("images/large/base_clef.png");
+    public StaticImage getBaseClef(StaffSize size) {
+        StaticImage clef = loadImageFile("images/large/base_clef.png");
+        clef = scaleImage(clef, size.getStaffHeight() / (double) clef.getHeight());
+        return clef;
     }
 
     @Override
-    public StaticImage getQuarterNoteHead() {
+    public StaticImage getQuarterNoteHead(StaffSize size) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public StaticImage getHalfNoteHead() {
+    public StaticImage getHalfNoteHead(StaffSize size) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public StaticImage getWholeNoteHead() {
+    public StaticImage getWholeNoteHead(StaffSize size) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public StaticImage getQuarterRest() {
+    public StaticImage getQuarterRest(StaffSize size) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public StaticImage getEighthRest() {
+    public StaticImage getEighthRest(StaffSize size) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public StaticImage getHalfRest() {
+    public StaticImage getHalfRest(StaffSize size) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public StaticImage getQuarterNoteStem() {
+    public StaticImage getQuarterNoteStem(StaffSize size) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public StaticImage getEighthNoteStem() {
+    public StaticImage getEighthNoteStem(StaffSize size) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public StaticImage getSixteenthNoteStem() {
+    public StaticImage getSixteenthNoteStem(StaffSize size) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public StaticImage getThirtySecondNoteStem() {
+    public StaticImage getThirtySecondNoteStem(StaffSize size) {
         throw new UnsupportedOperationException();
     }
 

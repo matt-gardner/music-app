@@ -7,21 +7,21 @@ package com.gardner.soundengine.staves;
  * StaffCanvas), and then the StaffDrawer will just use the interface.
  */
 public interface StaffImageUtil {
-    public StaticImage getTrebleClef();
-    public StaticImage getBaseClef();
+    public StaticImage getTrebleClef(StaffSize size);
+    public StaticImage getBaseClef(StaffSize size);
 
-    public StaticImage getQuarterNoteHead();
-    public StaticImage getHalfNoteHead();
-    public StaticImage getWholeNoteHead();
+    public StaticImage getQuarterNoteHead(StaffSize size);
+    public StaticImage getHalfNoteHead(StaffSize size);
+    public StaticImage getWholeNoteHead(StaffSize size);
 
-    public StaticImage getQuarterRest();
-    public StaticImage getEighthRest();
-    public StaticImage getHalfRest();
+    public StaticImage getQuarterRest(StaffSize size);
+    public StaticImage getEighthRest(StaffSize size);
+    public StaticImage getHalfRest(StaffSize size);
 
-    public StaticImage getQuarterNoteStem();
-    public StaticImage getEighthNoteStem();
-    public StaticImage getSixteenthNoteStem();
-    public StaticImage getThirtySecondNoteStem();
+    public StaticImage getQuarterNoteStem(StaffSize size);
+    public StaticImage getEighthNoteStem(StaffSize size);
+    public StaticImage getSixteenthNoteStem(StaffSize size);
+    public StaticImage getThirtySecondNoteStem(StaffSize size);
 
     public StaticImage loadImageFile(String filename);
     public StaticImage scaleImage(StaticImage image, double scaleFactor);
