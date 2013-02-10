@@ -14,6 +14,9 @@ public abstract class StaffSize {
     protected int lineThickness;
     protected int trebleClefHeight;
     protected int trebleClefOffset;
+    protected int noteHeight;
+    protected int stemlessNoteHeight;
+    protected int quarterNoteYOffset;
 
     public int getStaffHeight() {
         return staffHeight;
@@ -23,11 +26,28 @@ public abstract class StaffSize {
         return lineThickness;
     }
 
+    public int getLineSpacing() {
+        // Five lines per staff
+        return staffHeight / 4;
+    }
+
     public int getTrebleClefHeight() {
         return trebleClefHeight;
     }
 
     public int getTrebleClefOffset() {
         return trebleClefOffset;
+    }
+
+    public int getQuarterNoteHeight() {
+        return noteHeight;
+    }
+
+    public int getWholeNotHeight() {
+        return stemlessNoteHeight;
+    }
+
+    public int getQuarterNoteYOffset() {
+        return quarterNoteYOffset;
     }
 }

@@ -31,17 +31,36 @@ public class DesktopStaffImageUtil implements StaffImageUtil {
     }
 
     @Override
-    public StaticImage getQuarterNoteHead(StaffSize size) {
+    public StaticImage getWholeNote(StaffSize size) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public StaticImage getHalfNoteHead(StaffSize size) {
+    public StaticImage getHalfNote(StaffSize size) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public StaticImage getWholeNoteHead(StaffSize size) {
+    public StaticImage getQuarterNote(StaffSize size) {
+        // Really, this should load separate images depending on size.  But for now we'll just
+        // scale stuff.
+        StaticImage note = loadImageFile("images/large/Quarter_Note.png");
+        note = scaleImage(note, size.getQuarterNoteHeight() / (double) note.getHeight());
+        return note;
+    }
+
+    @Override
+    public StaticImage getEighthNote(StaffSize size) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public StaticImage getSixteenthNote(StaffSize size) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public StaticImage getThirtySecondNote(StaffSize size) {
         throw new UnsupportedOperationException();
     }
 
@@ -57,26 +76,6 @@ public class DesktopStaffImageUtil implements StaffImageUtil {
 
     @Override
     public StaticImage getHalfRest(StaffSize size) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public StaticImage getQuarterNoteStem(StaffSize size) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public StaticImage getEighthNoteStem(StaffSize size) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public StaticImage getSixteenthNoteStem(StaffSize size) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public StaticImage getThirtySecondNoteStem(StaffSize size) {
         throw new UnsupportedOperationException();
     }
 

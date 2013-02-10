@@ -26,6 +26,9 @@ public class MusicDrawingTestPanel extends JPanel {
 
         StaffImageUtil util = new DesktopStaffImageUtil();
         StaffDrawer drawer = new StaffDrawer();
-        drawer.drawTrebleClefStaff(canvas, StaffSize.LARGE, util);
+        drawer.drawTrebleClefStaff(canvas, StaffSize.SMALL, util);
+        drawer.drawQuarterNoteOnTrebleClef(canvas, StaffSize.SMALL, util, "B4", 60);
+        drawer.drawQuarterNoteOnTrebleClef(canvas, StaffSize.SMALL, util, "C5", 90);
+        drawer.drawQuarterNoteOnTrebleClef(canvas, StaffSize.SMALL, util, "D5", 120);
     }
 }

@@ -10,18 +10,17 @@ public interface StaffImageUtil {
     public StaticImage getTrebleClef(StaffSize size);
     public StaticImage getBaseClef(StaffSize size);
 
-    public StaticImage getQuarterNoteHead(StaffSize size);
-    public StaticImage getHalfNoteHead(StaffSize size);
-    public StaticImage getWholeNoteHead(StaffSize size);
+    public StaticImage getWholeNote(StaffSize size);
+    public StaticImage getHalfNote(StaffSize size);
+    public StaticImage getQuarterNote(StaffSize size);
+    public StaticImage getEighthNote(StaffSize size);
+    public StaticImage getSixteenthNote(StaffSize size);
+    public StaticImage getThirtySecondNote(StaffSize size);
 
     public StaticImage getQuarterRest(StaffSize size);
     public StaticImage getEighthRest(StaffSize size);
     public StaticImage getHalfRest(StaffSize size);
 
-    public StaticImage getQuarterNoteStem(StaffSize size);
-    public StaticImage getEighthNoteStem(StaffSize size);
-    public StaticImage getSixteenthNoteStem(StaffSize size);
-    public StaticImage getThirtySecondNoteStem(StaffSize size);
 
     public StaticImage loadImageFile(String filename);
     public StaticImage scaleImage(StaticImage image, double scaleFactor);
